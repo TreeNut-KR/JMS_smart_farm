@@ -55,16 +55,13 @@ void loop() {
     {digitalWrite(W_PUMP, HIGH);  WPUMP = true;}
   else
     {digitalWrite(W_PUMP, LOW);   WPUMP = false;}
-
-
-
   Serial.readStringUntil('\n');
-
-
   
   SendDataToOLEDDisplay(IsRun, SYSFAN, WPUMP, Humidity, Temperature, 1024 - Ground1, 1024 - Ground2);
-  //라즈베리파이에 데이터 보내기
+  //OLED에 데이터 보내기
+
   SendDataToRaspberryPi(IsRun, SYSFAN, WPUMP, Humidity, Temperature, 1024 - Ground1, 1024 - Ground2); 
+  //라즈베리파이에 데이터 보내기
   delay(1000);
 }
 
@@ -97,10 +94,8 @@ void SendDataToRaspberryPi(bool IsRun, bool SYSFAN, bool WPUMP, float humidity, 
 void SendDataToOLEDDisplay(bool IsRun, bool SYSFAN, bool WPUMP, float humidity, float temperature, int ground1, int ground2) {
   char buffer[50];
   char temp[20];
-  // sprintf(buffer, "IR:%d SF:%d WP:%d", IsRun, SYSFAN, WPUMP);
-  // display.setCursor(0,0);
-  // display.println(buffer);
 
+  //습도 OLED에 출력
   display.clearDisplay();
   memset(buffer, 0, sizeof(buffer));  // buffer 초기화
   dtostrf(humidity, 3, 1, temp);
@@ -108,22 +103,13 @@ void SendDataToOLEDDisplay(bool IsRun, bool SYSFAN, bool WPUMP, float humidity, 
   display.setCursor(0,10);
   display.println(buffer);
   
+  //온도 OLED에 출력
   memset(buffer, 0, sizeof(buffer));  // buffer 초기화
   dtostrf(temperature, 3, 1, temp);
   sprintf(buffer, "Te: %s C", temp);
   display.setCursor(0,30);
   display.println(buffer);
   
-  // memset(buffer, 0, sizeof(buffer));  // buffer 초기화
-  // sprintf(buffer, "G1 : %d", ground1);
-  // display.setCursor(0,30);
-  // display.println(buffer);
-  
-  // memset(buffer, 0, sizeof(buffer));  // buffer 초기화
-  // sprintf(buffer, "G2 : %d", ground2);
-  // display.setCursor(0,45);
-  // display.println(buffer);
-
   // Show the display buffer on the screen. You MUST call display.display() after
   // writing to the display buffer.
   display.display();
