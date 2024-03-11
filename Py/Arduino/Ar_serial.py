@@ -3,9 +3,8 @@ from datetime import datetime, timezone, timedelta
 import time
 import os
 import sqlite3
-import threading
 
-from typing import Union
+from USB_device import Usb
 
 class Database:
     def __init__(self):
@@ -18,16 +17,18 @@ class Database:
 
     def create_table(self):
         query = """
-        CREATE TABLE IF NOT EXISTS ardu_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CREATE TABLE IF NOT EXISTS smartFarm (
+            idx INTEGER PRIMARY KEY AUTOINCREMENT,
             IsRun BOOL,
             sysfan BOOL,
             wpump BOOL,
             humidity REAL,
             temperature REAL,
             ground1 INTEGER,
-            ground2 INTEGER
+            ground2 INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT NULL
         )
         """
         self.cursor.execute(query)
@@ -36,31 +37,18 @@ class Database:
         current_time = datetime.now(timezone(timedelta(hours=9)))
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
         query = """
-        INSERT INTO ardu_data (time, IsRun, sysfan, wpump, humidity, temperature, ground1, ground2)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO smartFarm ( IsRun, sysfan, wpump, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,NULL)
         """
-        self.cursor.execute(query, (current_time_str, IsRun, sysfan, wpump, humidity, temperature, ground1, ground2))
+        self.cursor.execute(query, (current_time_str, IsRun, sysfan, wpump, humidity, temperature, ground1, ground2,current_time_str, current_time_str))
         self.conn.commit()
-
-class Usb:
-    def __init__(self) -> None:
-        self.port = None
-
-    def get(self) -> Union[str, None]:
-        ports = serial.tools.list_ports.comports()
-
-        for port_get, desc, _ in sorted(ports):
-            if "Arduino" in desc or "CH340" in desc:
-                self.port = port_get
-                return self.port
-        return None
 
 class Ardu(Usb):
     def __init__(self) -> None:
         super().__init__()
         self.db = Database()
 
-        self.port = self.get()
+        self.port = self.usb_get("CH340")
         self.arduino = None
         self.defl = "0"
 
