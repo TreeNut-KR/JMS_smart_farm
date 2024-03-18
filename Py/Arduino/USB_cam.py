@@ -9,7 +9,7 @@ class Cam_server(Usb):
     def __init__(self) -> None:
         super().__init__()
         # 카메라 연결
-        self.port = self.cam_get("UC60")
+        self.port = self.cam_get("60")
         self.camera = cv2.VideoCapture(self.port)
 
         # FastAPI 라우트 설정
@@ -18,6 +18,9 @@ class Cam_server(Usb):
         self.app.get("/video_feed")(self.video_feed)
 
     def gen_frames(self):
+        '''
+        실시간으로 영상을 받은 후 ./video_feed으로 송출
+        '''
         while True:
             success, frame = self.camera.read()
             if not success:
@@ -49,4 +52,4 @@ class Cam_server(Usb):
 if __name__ == "__main__":
     # Cam 객체 생성 및 uvicorn 서버 실행
     cam = Cam_server()
-    uvicorn.run(cam.app, host="192.168.219.104", port=8000)
+    uvicorn.run(cam.app, port=8080, host='0.0.0.0')
