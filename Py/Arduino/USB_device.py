@@ -7,6 +7,9 @@ class Usb:
         self.port = None
 
     def usb_get(self, mod: str) -> Union[str, None]:
+        '''
+        Arduino USB 데이터
+        '''
         ports = serial.tools.list_ports.comports()
 
         for port_get, desc, _ in sorted(ports):
@@ -15,7 +18,10 @@ class Usb:
                 return self.port
         return None
     
-    def cam_get(self, mod: str):
+    def cam_get(self, mod: str) -> Union[int, None]:
+        '''
+        카메라 USB 데이터
+        '''
         for device_index, device_name in enumerate(FilterGraph().get_input_devices()):
             if mod in device_name:
                 return device_index

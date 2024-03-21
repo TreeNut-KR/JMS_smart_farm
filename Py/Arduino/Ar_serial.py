@@ -9,9 +9,8 @@ import threading
 
 from USB_device import Usb
 
-
 class Database:
-    def __init__(self):
+    def __init__(self) -> None:
         self.directory = 'C:/JMS'
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
@@ -21,6 +20,9 @@ class Database:
         self.create_table()
 
     def create_table(self):
+        '''
+        DB 테이블 생성
+        '''
         query = """
         CREATE TABLE IF NOT EXISTS smartFarm (
             idx INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,7 +41,10 @@ class Database:
         """
         self.cursor.execute(query)
 
-    def insert_data(self, IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2):
+    def insert_data(self, IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2) -> None:
+        '''
+        DB에 데이터 삽입
+        '''
         current_time = datetime.now(timezone(timedelta(hours=9)))
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
         query = """
@@ -73,20 +78,26 @@ class Ardu:
             print(f"Error: {e}")
         time.sleep(2)
 
-    def send_data(self):
-        #파이썬에서 아두이노의 센서(LED, SYSFAN)를 설정
+    def send_data(self) -> None:
+        '''
+        파이썬에서 아두이노의 센서(LED, SYSFAN)를 설정
+        '''
         input_1, input_2 = map(str, input("\n1. LED, 2. FAN\n(on : 1, off : 0)\ninput : ").split())
         sendDATA = input_1 + ',' + input_2
         Ar.arduino.write(sendDATA.encode())
 
-    def read_serial_data(self):
-        #아두이노에서 보낸 데이터를 data에 임시저장
+    def read_serial_data(self) -> str:
+        '''
+        아두이노에서 보낸 데이터를 data에 임시저장
+        '''
         if self.arduino.in_waiting > 0:
             data = self.arduino.readline().decode().rstrip()
             return data
 
-    def read_data(self):
-        #아두이노에서 보낸 데이터를 파이썬에 변수로 저장, 출력
+    def read_data(self) -> None:
+        '''
+        아두이노에서 보낸 데이터를 파이썬에 변수로 저장, 출력
+        '''
         data = self.read_serial_data()
         if data:
             if data.startswith("IsRun : "):
@@ -123,11 +134,17 @@ class Ardu:
                 self.db.insert_data(self.IsRun, self.sysfan, self.wpump, self.led, self.humidity, self.temperature, self.ground1, self.ground2)
                 self.last_print_time = time.time()  # Update the last print time
 
-    def MultiProcessing_Read_Data(self):
+    def MultiProcessing_Read_Data(self) -> None:
+        '''
+        수신 데이터 멀티쓰레드
+        '''
         while True:
             self.read_data()
 
-    def MultiProcessing_Send_Data(self):
+    def MultiProcessing_Send_Data(self) -> None:
+        '''
+        송신 데이터 멀티쓰레드
+        '''
         while True:
             try:
                 self.send_data()
@@ -136,6 +153,7 @@ class Ardu:
 
 if __name__ == "__main__":
     Ar = Ardu()
+    Ar.read_data()
     read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
     read_process.start()
     send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
