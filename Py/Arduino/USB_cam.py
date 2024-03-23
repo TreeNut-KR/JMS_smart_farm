@@ -3,9 +3,9 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, HTMLResponse
 import uvicorn
 
-from USB_device import Usb
+from device import device_data
 
-class Cam_server(Usb):
+class Cam_server(device_data):
     def __init__(self) -> None:
         super().__init__()
         # 카메라 연결

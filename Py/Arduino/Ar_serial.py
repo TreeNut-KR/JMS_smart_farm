@@ -3,15 +3,15 @@ from datetime import datetime, timezone, timedelta
 import time
 import os
 import sqlite3
-from pyfirmata import Arduino, util
 #from multiprocessing import Pool
 import threading
 
-from USB_device import Usb
+from device import device_data
 
 class Database:
     def __init__(self) -> None:
-        self.directory = 'C:/JMS'
+        # self.directory = 'C:/JMS' # 윈도우 기준
+        self.directory = '/home/jms/Documents/JMS' # 우분투 기준
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # check_same_thread 파라미터를 False로 설정
@@ -54,10 +54,11 @@ class Database:
         self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,current_time_str, current_time_str))
         self.conn.commit()
 
-class Ardu:
+class Ardu(device_data):
     def __init__(self) -> None:
+        super().__init__()
         self.db = Database()
-        self.port = Usb().usb_get("CH340")
+        self.port = self.ar_get("CH340")
         self.arduino = None
         self.defl = "0"
 
@@ -75,7 +76,8 @@ class Ardu:
         try:
             self.arduino = serial.Serial(self.port, 9600)
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Port Error: {e}")
+            exit(1)
         time.sleep(2)
 
     def send_data(self) -> None:
@@ -153,11 +155,19 @@ class Ardu:
 
 if __name__ == "__main__":
     Ar = Ardu()
-    Ar.read_data()
-    read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
-    read_process.start()
-    send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
-    send_process.start()
+    try:
+        Ar.read_data()    
+        
+        read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
+        read_process.start()
+        send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
+        send_process.start()
 
-    read_process.join()
-    send_process.join()
+        read_process.join()
+        send_process.join()
+
+    except Exception as e :
+        print(f"main Error : {e}")
+        exit(1)
+        
+
