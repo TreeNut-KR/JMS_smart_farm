@@ -3,6 +3,8 @@
 ## 🏷️ 스마트팜 메인 프로젝트 깃허브
 [![스마트팜 프로젝트](https://capsule-render.vercel.app/api?type=waving&height=300&color=0:038C7F,30:04BF8A,70:04D98B,100:74BF04&text=Smart%20Farm%20Main&fontColor=ffffff&textBg=false&desc=Link%20:%20jgkim14_SmartFarm.git&descAlignY=53&fontAlignY=35&descAlign=67)](https://github.com/jgkim14/SmartFarm.git)
 
+---
+
 ## 🌳 프로젝트 파일 트리
 📦JMS_smart_farm  
  ┣ 📂Ar  
@@ -31,16 +33,24 @@
  ┃  
  ┣ 📜.gitignore  
  ┗ 📜README.md  
-<br><br><br>
+
+---
 
 ## ⚡ 스마트팜 전력 분배 시스템
    <table> 
       <tr> 
          <td><img src="https://drive.google.com/uc?export=view&id=13ar-wA-7TMwUxgA23lSkwvVG2YBkz0Jr" width="100%"></td>
+      <tr> 
+      </tr> 
+         <td><img src="https://drive.google.com/uc?export=view&id=16K5b2SZef0kbdzVoox6DTChH2M7OzhQk" width="100%"></td>
       </tr> 
    </table>
-   <br><br><br>
-
+   
+   ## ⬇️ 전선배선도면.eddx
+   [![스마트팜 프로젝트](https://drive.google.com/uc?export=view&id=16WdiVHhC-2nJh9dAnjKDahrYuOmt0JXA)](https://drive.google.com/file/d/16HMf_8yOA0kCh1TgKVcjFiXK0HJdRApW/view?usp=sharing) 
+   
+---
+   
 ## 📑 하드웨어 프로젝트 일지
 
 ### 🔖 24.01.26. 제작
