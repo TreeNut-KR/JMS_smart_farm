@@ -36,7 +36,7 @@
 
 ---
 
-## ⚡ 스마트팜 전력 분배 시스템
+## ⚡ 스마트팜 전력 배선 시스템
    <table> 
       <tr> 
          <td><img src="https://drive.google.com/uc?export=view&id=13ar-wA-7TMwUxgA23lSkwvVG2YBkz0Jr" width="100%"></td>
