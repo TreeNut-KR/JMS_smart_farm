@@ -79,7 +79,7 @@
 ### 24.03.24. 업데이트
 **`제품 기능 수정`**
 - 파이썬(Py): 라즈베리파이 우분투 OS에서 작동하도록 라이브러리 및 코드 수정
-- 제품 사진
+- 기능 사진
    <table> 
       <tr> 
          <td><img src="https://drive.google.com/uc?export=view&id=1Zk3cf9SlDXYjIp0twA4vFQgXR4xKxmK2" width="100%"></td>
