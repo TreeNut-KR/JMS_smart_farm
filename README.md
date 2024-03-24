@@ -47,7 +47,7 @@
    </table>
    
    ## ⬇️ 전선배선도면.eddx
-   [![스마트팜 프로젝트](https://drive.google.com/uc?export=view&id=16WdiVHhC-2nJh9dAnjKDahrYuOmt0JXA)](https://drive.google.com/file/d/16HMf_8yOA0kCh1TgKVcjFiXK0HJdRApW/view?usp=sharing) 
+   [![스마트팜 프로젝트](https://drive.google.com/uc?export=view&id=16YLoCCLto-hLLAYDK2dCux5KVayjZyTT)](https://drive.google.com/file/d/16HMf_8yOA0kCh1TgKVcjFiXK0HJdRApW/view?usp=sharing) 
    
 ---
    
