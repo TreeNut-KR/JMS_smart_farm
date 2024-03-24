@@ -3,6 +3,34 @@
 ## 스마트팜 메인 프로젝트 깃허브
 [![스마트팜 프로젝트](https://capsule-render.vercel.app/api?type=waving&height=300&color=0:038C7F,30:04BF8A,70:04D98B,100:74BF04&text=Smart%20Farm%20Main&fontColor=ffffff&textBg=false&desc=Link%20:%20jgkim14_SmartFarm.git&descAlignY=53&fontAlignY=35&descAlign=67)](https://github.com/jgkim14/SmartFarm.git)
 
+## 프로젝트 파일 트리
+📦JMS_smart_farm
+ ┣ 📂Ar
+ ┃ ┗ 📂Arduino_UNO
+ ┃   ┗ 📂JMS_Arduino
+ ┃     ┗ 📜JMS_Arduino.ino
+ ┃
+ ┣ 📂DB
+ ┃ ┗ 📂20240213
+ ┃   ┣ 📜JMSPlant.db
+ ┃   ┗ 📜JMSPlant_remake.db
+ ┃
+ ┣ 📂Py
+ ┃ ┣ 📂Arduino
+ ┃ ┃ ┣ 📜Ar_serial.py
+ ┃ ┃ ┣ 📜USB_cam.py
+ ┃ ┃ ┗ 📜USB_device.py
+ ┃ ┃
+ ┃ ┣ 📂DATA
+ ┃ ┃ ┣ 📜DB_Remaker.py
+ ┃ ┃ ┗ 📜DB_to_chart.py
+ ┃ ┃
+ ┃ ┗ 📂TEST
+ ┃   ┣ 📜thread_py.py
+ ┃   ┗ 📜v4l2_cam_list.py.py
+ ┃
+ ┣ 📜.gitignore
+ ┗ 📜README.md
 
 ## 스마트팜 전력 분배 시스템
    <table> 
