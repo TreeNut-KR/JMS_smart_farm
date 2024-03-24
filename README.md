@@ -1,4 +1,9 @@
-![header](https://capsule-render.vercel.app/api?type=rounded&color=0:038C7F,30:04BF8A,70:04D98B,100:74BF04&text=JMS%20smart%20farm&%20&height=300&fontSize=100&desc=By%20Joffice%20Hardware%20:%20Lee,%20Seo&descAlignY=75&descAlign=80)
+![header](https://capsule-render.vercel.app/api?type=venom&height=300&color=0:038C7F,30:04BF8A,70:04D98B,100:74BF04&text=JMS%20Smart%20Farm&fontAlign=50&fontColor=ffffff&textBg=false&desc=By%20Joffice%20Hardware%20:%20Lee,%20Seo&descAlign=50&descAlignY=63&fontAlignY=46)
+
+## 스마트팜 메인 프로젝트 깃허브
+[![스마트팜 프로젝트](https://capsule-render.vercel.app/api?type=waving&height=300&color=0:038C7F,30:04BF8A,70:04D98B,100:74BF04&text=Smart%20Farm%20Main&fontColor=ffffff&textBg=false&desc=Link%20:%20jgkim14_SmartFarm.git&descAlignY=53&fontAlignY=35&descAlign=67)](https://github.com/jgkim14/SmartFarm.git)
+
+
 ## 스마트팜 전력 분배 시스템
    <table> 
     <tr> 
@@ -6,7 +11,7 @@
     </tr> 
    </table><br><br><br>
 
-## 프로젝트 일지
+## 하드웨어 프로젝트 일지
 
 ### 24.01.26. 제작
 **`프로젝트 준비와 제품 초기 구현`**
