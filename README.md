@@ -1,4 +1,4 @@
-![header](https://capsule-render.vercel.app/api?type=venom&height=300&color=0:038C7F,45:04BF8A,60:04D98B,100:74BF04&text=JMS%20Smart%20Farm&fontAlign=50&fontColor=ffffff&textBg=false&desc=By%20JMS.HW%20:%20Lee%20Junho,%20Seo%20junghun&descAlign=50&descAlignY=63&fontAlignY=46)
+[![header](https://capsule-render.vercel.app/api?type=venom&height=300&color=0:038C7F,45:04BF8A,60:04D98B,100:74BF04&text=JMS%20Smart%20Farm&fontAlign=50&fontColor=ffffff&textBg=false&desc=By%20JMS.HW%20:%20Lee%20Junho,%20Seo%20junghun&descAlign=50&descAlignY=63&fontAlignY=46)](https://github.com/CutTheWire/JMS_smart_farm.git)
 
 ## 스마트팜 메인 프로젝트 깃허브
 [![스마트팜 프로젝트](https://capsule-render.vercel.app/api?type=waving&height=300&color=0:038C7F,30:04BF8A,70:04D98B,100:74BF04&text=Smart%20Farm%20Main&fontColor=ffffff&textBg=false&desc=Link%20:%20jgkim14_SmartFarm.git&descAlignY=53&fontAlignY=35&descAlign=67)](https://github.com/jgkim14/SmartFarm.git)
