@@ -4,20 +4,16 @@ import subprocess
 from typing import Union
 
 class device_data:
-    def __init__(self) -> None:
-        self.port = None
-
     def ar_get(self, mod: str) -> Union[str, None]:
         '''
         Arduino 데이터
         '''
         ports = serial.tools.list_ports.comports()
-
-        for port_get, desc, _ in sorted(ports):
-            if mod in desc:
-                self.port = port_get
-                return self.port
+        for port_get, _, _ in sorted(ports):
+            if mod in port_get:
+                return port_get
         return None
+    
     
     # def cam_get(self, mod: str) -> Union[int, None]:
     #     '''
@@ -56,3 +52,8 @@ class device_data:
             index = int(''.join(filter(str.isdigit, device_path)))
             return index
         return None
+    
+# if __name__ == "__main__":
+#     df = device_data()
+#     port = df.ar_get("USB")
+#     print(port)

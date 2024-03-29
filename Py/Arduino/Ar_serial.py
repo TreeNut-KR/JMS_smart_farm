@@ -58,7 +58,7 @@ class Ardu(device_data):
     def __init__(self) -> None:
         super().__init__()
         self.db = Database()
-        self.port = self.ar_get("CH340")
+        self.port = self.ar_get("USB")
         self.arduino = None
         self.defl = "0"
 
@@ -74,7 +74,7 @@ class Ardu(device_data):
         self.last_print_time = time.time()
 
         try:
-            self.arduino = serial.Serial(self.port, 9600)
+            self.arduino = serial.Serial(self.port , 9600)
         except Exception as e:
             print(f"Port Error: {e}")
             exit(1)
@@ -157,7 +157,6 @@ if __name__ == "__main__":
     Ar = Ardu()
     try:
         Ar.read_data()    
-        
         read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
         read_process.start()
         send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
