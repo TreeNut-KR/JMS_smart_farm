@@ -21,7 +21,7 @@
  ┃ ┣ 📂Arduino  
  ┃ ┃ ┣ 📜[Ar_serial.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/Ar_serial.py)  
  ┃ ┃ ┣ 📜[USB_cam.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/USB_cam.py)  
- ┃ ┃ ┗ 📜[USB_device.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/USB_device.py)  
+ ┃ ┃ ┗ 📜[USB_device.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/device.py)  
  ┃ ┃  
  ┃ ┣ 📂DATA  
  ┃ ┃ ┣ 📜[DB_Remaker.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/DATA/DB_Remaker.py)  
