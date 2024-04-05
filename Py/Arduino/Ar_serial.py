@@ -1,12 +1,27 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel  
+from fastapi.responses import FileResponse
 import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
 import time
 import os
 import sqlite3
-#from multiprocessing import Pool
+import uvicorn
 import threading
-
 from device import device_data
+
+app = FastAPI()
+
+# 데이터를 저장할 구조
+class Data(BaseModel):
+    IsRun: bool
+    sysfan: bool
+    wpump: bool
+    led: bool
+    humidity: float
+    temperature: float
+    ground1: int
+    ground2: int
 
 class Database:
     def __init__(self) -> None:
@@ -54,6 +69,7 @@ class Database:
         self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,current_time_str, current_time_str))
         self.conn.commit()
 
+
 class Ardu(device_data):
     def __init__(self) -> None:
         super().__init__()
@@ -86,7 +102,7 @@ class Ardu(device_data):
         '''
         input_1, input_2 = map(str, input("\n1. LED, 2. FAN\n(on : 1, off : 0)\ninput : ").split())
         sendDATA = input_1 + ',' + input_2
-        Ar.arduino.write(sendDATA.encode())
+        self.arduino.write(sendDATA.encode())
 
     def read_serial_data(self) -> str:
         '''
@@ -144,19 +160,57 @@ class Ardu(device_data):
             self.read_data()
 
     def MultiProcessing_Send_Data(self) -> None:
-        '''
-        송신 데이터 멀티쓰레드
-        '''
-        while True:
-            try:
-                self.send_data()
-            except:
-                print("\nRetry\n")
+        # '''
+        # 송신 데이터 멀티쓰레드
+        # '''
+        # while True:
+        #     try:
+        #         self.send_data()
+        #     except:
+        #         print("\nRetry\n")
+        uvicorn.run(app, host="0.0.0.0", port=8666)
 
+# 최신 데이터 조회 엔드포인트
+@app.get("/latest_data")
+async def get_latest_data():
+    conn = sqlite3.connect('/home/jms/Documents/JMS/JMSPlant.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT * FROM smartFarm ORDER BY idx DESC LIMIT 100
+    ''')
+    row = cursor.fetchone()
+    print(row)
+    conn.close()
+    if row:
+        data = {
+            'IsRun': row[1],
+            'sysfan': row[2],
+            'wpump': row[3],
+            'led': row[4],
+            'humidity': row[5],
+            'temperature': row[6],
+            'ground1': row[7],
+            'ground2': row[8],
+            'ground2': row[8],
+            'created_at': row[9],
+            'updated_at': row[10],
+            'deleted_at': row[11],
+        }
+        return data
+
+    else:
+        raise HTTPException(status_code=404, detail="Data not found")
+
+# 기본 경로('/')로 접속했을 때 index.html 반환
+@app.get("/")
+async def get_index_html():
+    return FileResponse("Py/Arduino/latest_data/index.html")
+
+# 메인 함수
 if __name__ == "__main__":
     Ar = Ardu()
     try:
-        Ar.read_data()
+        Ar.read_data()    
         read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
         read_process.start()
         send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
