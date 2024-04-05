@@ -25,8 +25,8 @@ class Data(BaseModel):
 
 class Database:
     def __init__(self) -> None:
-        self.directory = 'C:/JMS' # 윈도우 기준
-        # self.directory = '/home/jms/Documents/JMS' # 우분투 기준
+        # self.directory = 'C:/JMS' # 윈도우 기준
+        self.directory = '/home/jms/Documents/JMS' # 우분투 기준
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # check_same_thread 파라미터를 False로 설정
@@ -209,18 +209,10 @@ async def get_index_html():
 # 메인 함수
 if __name__ == "__main__":
     Ar = Ardu()
-    try:
-        Ar.read_data()    
-        read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
-        read_process.start()
-        send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
-        send_process.start()
-
-        read_process.join()
-        send_process.join()
-
-    except Exception as e :
-        print(f"main Error : {e}")
-        exit(1)
-        
-
+    Ar.read_data()    
+    read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
+    read_process.start()
+    send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
+    send_process.start()
+    read_process.join()
+    send_process.join()
