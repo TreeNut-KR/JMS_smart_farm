@@ -10,8 +10,8 @@ from device import device_data
 
 class Database:
     def __init__(self) -> None:
-        # self.directory = 'C:/JMS' # 윈도우 기준
-        self.directory = '/home/jms/Documents/JMS' # 우분투 기준
+        self.directory = 'C:/JMS' # 윈도우 기준
+        # self.directory = '/home/jms/Documents/JMS' # 우분투 기준
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # check_same_thread 파라미터를 False로 설정
@@ -156,7 +156,7 @@ class Ardu(device_data):
 if __name__ == "__main__":
     Ar = Ardu()
     try:
-        Ar.read_data()    
+        Ar.read_data()
         
         read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
         read_process.start()
