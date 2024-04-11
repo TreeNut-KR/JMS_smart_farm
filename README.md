@@ -10,27 +10,44 @@
  ┣ 📂Ar  
  ┃ ┗ 📂Arduino_UNO  
  ┃ㅤㅤ┗ 📂JMS_Arduino  
- ┃ㅤㅤㅤㅤ┗ 📜[JMS_Arduino.ino](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Ar/Arduino_UNO/JMS_Arduino/JMS_Arduino.ino)  
- ┃  
+ ┃ㅤㅤㅤ┗ 📜[JMS_Arduino.ino](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Ar/Arduino_UNO/JMS_Arduino/JMS_Arduino.ino)   
+ ┃ㅤ    
  ┣ 📂DB  
  ┃ ┗ 📂20240213  
  ┃ㅤㅤ┣ 📜[JMSPlant.db](https://github.com/CutTheWire/JMS_smart_farm/blob/main/DB/20240213/JMSPlant.db)  
  ┃ㅤㅤ┗ 📜[JMSPlant_remake.db](https://github.com/CutTheWire/JMS_smart_farm/blob/main/DB/20240213/JMSPlant_remake.db)  
- ┃  
- ┣ 📂Py  
+ ┃ㅤ  
+ ┣ 📂Py   
  ┃ ┣ 📂Arduino  
+ ┃ ┃ ┣ 📂latest_data  
+ ┃ ┃ ┃ ┗ 📜[index.html](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/latest_data/index.html)  
+ ┃ ┃ ┃  
  ┃ ┃ ┣ 📜[Ar_serial.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/Ar_serial.py)  
- ┃ ┃ ┣ 📜[USB_cam.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/USB_cam.py)  
- ┃ ┃ ┗ 📜[USB_device.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/device.py)  
+ ┃ ┃ ┣ 📜[device.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/device.py)  
+ ┃ ┃ ┣ 📜[GetUpdate.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/GetUpdate.py)  
+ ┃ ┃ ┗ 📜[USB_cam.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/USB_cam.py)  
  ┃ ┃  
  ┃ ┣ 📂DATA  
  ┃ ┃ ┣ 📜[DB_Remaker.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/DATA/DB_Remaker.py)  
  ┃ ┃ ┗ 📜[DB_to_chart.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/DATA/DB_to_chart.py)  
  ┃ ┃  
- ┃ ┗ 📂TEST  
- ┃ㅤㅤ┣ 📜[thread_py.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/TEST/thread_py.py)  
- ┃ㅤㅤ┗ 📜[v4l2_cam_list.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/TEST/v4l2_cam_list.py)  
- ┃  
+ ┃ ┣ 📂TEST  
+ ┃ ┃ ┣ 📜[thread_py.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/TEST/thread_py.py)  
+ ┃ ┃ ┗ 📜[v4l2_cam_list.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/TEST/v4l2_cam_list.py)  
+ ┃ ┃  
+ ┃ ┣ 📂WebRTC  
+ ┃ ┃ ┣ 📂static  
+ ┃ ┃ ┃ ┣ 📜[script.js](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/WebRTC/static/script.js)  
+ ┃ ┃ ┃ ┗ 📜[style.css](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/WebRTC/static/style.css)  
+ ┃ ┃ ┃  
+ ┃ ┃ ┣ 📂templates   
+ ┃ ┃ ┃ ┗ 📜[index.html](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/WebRTC/templates/index.html)  
+ ┃ ┃ ┃  
+ ┃ ┃ ┗ 📜[main.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/WebRTC/main.py)  
+ ┃ ┃  
+ ┃ ┗ 📜[Arduino.zip](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino.zip)  
+ ┃   
+ ┣ 📜[JMSPlant.db](https://github.com/CutTheWire/JMS_smart_farm/blob/main/JMSPlant.db)  
  ┣ 📜.gitignore  
  ┗ 📜README.md  
 
