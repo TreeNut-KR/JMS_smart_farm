@@ -1,6 +1,16 @@
-import sqlite3
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+from fastapi import FastAPI, WebSocket, HTTPException, Depends, BackgroundTasks
+from pydantic import BaseModel
+import json
+from datetime import datetime, timedelta
+import asyncio
+from db import get_database_connection  # 수정된 부분
+from DB_Remark import some_database_operation  # 데이터베이스 연산 함수 import
+from DB_to_chart import Chart  # 차트 클래스 import
+from fastapi.responses import FileResponse  # 파일 응답을 위한 import
+
+async def some_database_operation():
+    conn = await get_database_connection()
+    
 
 class chart:
     def __init__(self) -> None:
