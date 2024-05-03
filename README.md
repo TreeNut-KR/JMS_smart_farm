@@ -141,3 +141,37 @@
          <td><img src="https://drive.google.com/uc?export=view&id=1Zk3cf9SlDXYjIp0twA4vFQgXR4xKxmK2" width="100%"></td>
       </tr> 
    </table>
+   
+### 🔖 24.05.01. 업데이트
+**`재배 작물 상태`**
+- 상추(아바타) 작물 파종
+- 두가지 재배 방법을 시작하여 작물 성장 속도와 품질을 비교(A, B)
+ - A 재배 방법 : 현재 프로젝트를 통해 만든 스마트팜으로 재배
+ - B 재배 방버 : 기본적인 수경 재배로 수작업으로 주기적(1주일)으로 부족해진 물을 채워주고 자연광으로 재배
+ - 🖼️ 작물 사진
+   <table> 
+      <tr> 
+         <td><img src="https://drive.google.com/uc?export=view&id=1CwInXNLxMooPpwjRV3gzl3rCzMjMl04o" width="100%"></td> 
+      </tr> 
+      <tr>
+         <td><img src="https://drive.google.com/uc?export=view&id=1CxhUNlVqYPXXwcKlHeoAFjlUP4YCpEGf" width="100%"></td> 
+      </tr> 
+   </table>
+
+
+### 🔖 24.05.03. 업데이트
+**`재배 작물 상태`**
+- A 발아 시작
+- 🖼️ 작물 사진
+   <table> 
+      <tr> 
+         <td><img src="https://drive.google.com/uc?export=view&id=1D52Ke5YcbvH1cKlbaidLkWEeIWABYzp9" width="100%"></td> 
+         <td><img src="https://drive.google.com/uc?export=view&id=1CoENFdkzs24mKd8dwQX1z5M9XWUxzro0" width="100%"></td> 
+         <td><img src="https://drive.google.com/uc?export=view&id=1Cp03uaHg9szb9nrcVM6B54SVc1-HWCTe" width="100%"></td> 
+      </tr> 
+      <tr>
+         <td><img src="https://drive.google.com/uc?export=view&id=1CyZcXYlJTh5tjHArPD4hUD7L101XMVCf" width="100%"></td> 
+         <td><img src="https://drive.google.com/uc?export=view&id=1Cdnrv4Gprt-3BznzD30y0LUolEpiYvBG" width="100%"></td> 
+         <td><img src="https://drive.google.com/uc?export=view&id=1CtlgxPevDpq3YkafO29KDLIM5GobYIuu" width="100%"></td> 
+      </tr> 
+   </table>
