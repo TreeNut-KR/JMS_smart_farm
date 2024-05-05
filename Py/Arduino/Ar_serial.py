@@ -1,12 +1,13 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel  
 from fastapi.responses import FileResponse
 import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
 import time
+import os
+import sqlite3
 import uvicorn
 import threading
-import mysql.connector
 from device import device_data
 
 app = FastAPI()
@@ -24,14 +25,12 @@ class Data(BaseModel):
 
 class Database:
     def __init__(self) -> None:
-        # MySQL 데이터베이스 연결 설정
-        # 여기서 user, password, host, database를 자신의 환경에 맞게 수정해야 합니다.
-        self.conn = mysql.connector.connect(
-            user='root',
-            password='1234',
-            host='localhost',
-            database='jmedu'
-        )
+        # self.directory = 'C:/JMS' # 윈도우 기준
+        self.directory = '/home/jms/Documents/JMS' # 우분투 기준
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+        # check_same_thread 파라미터를 False로 설정
+        self.conn = sqlite3.connect(self.directory + '/JMSPlant.db', check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.create_table()
 
@@ -67,11 +66,9 @@ class Database:
         INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """
-        #백분율로 반환
-        ground1_percentage = (ground1/ 1024) * 100
-        ground2_percentage = (ground2 / 1024) * 100
-        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1_percentage, ground2_percentage,current_time_str, current_time_str))
+        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,current_time_str, current_time_str))
         self.conn.commit()
+
 
 class Ardu(device_data):
     def __init__(self) -> None:
@@ -174,32 +171,15 @@ class Ardu(device_data):
         uvicorn.run(app, host="0.0.0.0", port=8666)
 
 # 최신 데이터 조회 엔드포인트
-def get_database_connection():
-    try:
-        conn = mysql.connector.connect(
-            user='root',
-            password='1234',
-            host='localhost',
-            database='jmedu'
-        )
-        return conn
-    except mysql.connector.Error as e:
-        print(f"Database connection failed: {e}")
-        # 실제 운영 환경에서는 예외를 적절히 처리하는 방식을 고려해야 합니다.
-        # 여기서는 예시로 print만 하고 있습니다.
-        return None
-
 @app.get("/latest_data")
 async def get_latest_data():
-    conn = get_database_connection()
-    if conn is None:
-        raise HTTPException(status_code=500, detail="Database connection failed")
-        
+    conn = sqlite3.connect('/home/jms/Documents/JMS/JMSPlant.db')
     cursor = conn.cursor()
     cursor.execute('''
         SELECT * FROM smartFarm ORDER BY idx DESC LIMIT 1
     ''')
     row = cursor.fetchone()
+    print(row)
     conn.close()
     if row:
         data = {
@@ -211,11 +191,13 @@ async def get_latest_data():
             'temperature': row[6],
             'ground1': row[7],
             'ground2': row[8],
+            'ground2': row[8],
             'created_at': row[9],
             'updated_at': row[10],
             'deleted_at': row[11],
         }
         return data
+
     else:
         raise HTTPException(status_code=404, detail="Data not found")
 
