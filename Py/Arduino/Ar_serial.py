@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel  
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
 import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
@@ -25,8 +25,8 @@ class Data(BaseModel):
 
 class Database:
     def __init__(self) -> None:
-        # self.directory = 'C:/JMS' # 윈도우 기준
-        self.directory = '/home/jms/Documents/JMS' # 우분투 기준
+        self.directory = 'C:/JMS' # 윈도우 기준
+        # self.directory = '/home/jms/Documents/JMS' # 우분투 기준
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # check_same_thread 파라미터를 False로 설정
