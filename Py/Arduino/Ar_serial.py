@@ -24,14 +24,6 @@ class Data(BaseModel):
 
 class Database:
     def __init__(self) -> None:
-<<<<<<< HEAD
-        self.directory = 'C:/JMS' # 윈도우 기준
-        # self.directory = '/home/jms/Documents/JMS' # 우분투 기준
-        if not os.path.exists(self.directory):
-            os.makedirs(self.directory)
-        # check_same_thread 파라미터를 False로 설정
-        self.conn = sqlite3.connect(self.directory + '/JMSPlant.db', check_same_thread=False)
-=======
         # MySQL 데이터베이스 연결 설정
         # 여기서 user, password, host, database를 자신의 환경에 맞게 수정해야 합니다.
         self.conn = mysql.connector.connect(
@@ -40,7 +32,6 @@ class Database:
             host='localhost',
             database='jmedu'
         )
->>>>>>> 1badd92394fc4f6efdb90ed1035b11ae404e896b
         self.cursor = self.conn.cursor()
         self.create_table()
 
@@ -76,9 +67,11 @@ class Database:
         INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """
-        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,current_time_str, current_time_str))
+        #백분율로 반환
+        ground1_percentage = (ground1/ 1024) * 100
+        ground2_percentage = (ground2 / 1024) * 100
+        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1_percentage, ground2_percentage,current_time_str, current_time_str))
         self.conn.commit()
-
 
 class Ardu(device_data):
     def __init__(self) -> None:
