@@ -143,9 +143,11 @@ class Ardu(device_data):
             if data.startswith("Temperature : "):
                 self.temperature    = float(data.split(":")[1].strip().split("*C")[0])
             if data.startswith("Ground1 :"):
-                self.ground1        = int(data.split(":")[1].strip())
+                raw_ground1 = int(data.split(":")[1].strip())
+                self.ground1 = round((raw_ground1 / 1024) * 100,1)
             if data.startswith("Ground2 :"):
-                self.ground2        = int(data.split(":")[1].strip())
+                raw_ground2 = int(data.split(":")[1].strip())
+                self.ground2 = round((raw_ground2 / 1024) * 100,1)
             # Check if it has been more than 1 second since last print
             if time.time() - self.last_print_time >= 1:#저장시간
                 #print(f"Received data - \nIsRun: {self.IsRun}, SYSFAN: {self.sysfan}, WPUMP: {self.wpump}, Humidity: {self.humidity}%, Temperature: {self.temperature}°C, Ground1: {self.ground1}, Ground2: {self.ground2}")
