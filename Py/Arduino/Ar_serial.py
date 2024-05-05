@@ -193,7 +193,6 @@ async def get_latest_data():
             'temperature': row[6],
             'ground1': row[7],
             'ground2': row[8],
-            'ground2': row[8],
             'created_at': row[9],
             'updated_at': row[10],
             'deleted_at': row[11],
