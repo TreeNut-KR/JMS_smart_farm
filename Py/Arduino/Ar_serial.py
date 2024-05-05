@@ -4,8 +4,6 @@ from fastapi.responses import FileResponse
 import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
 import time
-import os
-import sqlite3
 import uvicorn
 import threading
 import mysql.connector
