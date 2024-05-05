@@ -7,7 +7,7 @@ import uvicorn
 app = FastAPI()
 
 # 정적 파일과 템플릿을 위한 디렉터리 설정
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("../Py/WebRTC/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/")

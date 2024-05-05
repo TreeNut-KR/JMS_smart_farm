@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel  
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
 import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
@@ -67,9 +67,11 @@ class Database:
         INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """
-        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,current_time_str, current_time_str))
+        #백분율로 반환
+        ground1_percentage = (ground1/ 1024) * 100
+        ground2_percentage = (ground2 / 1024) * 100
+        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1_percentage, ground2_percentage,current_time_str, current_time_str))
         self.conn.commit()
-
 
 class Ardu(device_data):
     def __init__(self) -> None:
