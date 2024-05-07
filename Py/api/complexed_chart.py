@@ -1,9 +1,23 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import uvicorn
+import logging 
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = FastAPI()
+
+# CORS 미들웨어 추가
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class DB_READ:
     def __init__(self):
@@ -11,26 +25,21 @@ class DB_READ:
         self.cursor = self.conn.cursor()
 
     def CURSOR(self, latest=False):
-        # 공통 쿼리 부분
         query = '''
             SELECT id, temperature, humidity, ground1, ground2 
             FROM ardu_data
         '''
         if latest:
-            # 최신 레코드 쿼리 확장
             query += 'ORDER BY time DESC LIMIT 1'
         else:
-            # 모든 레코드 쿼리 확장
             query += 'WHERE date(time) <= date()'
-
-        # 쿼리 실행
         self.cursor.execute(query)
+        logging.info("데이터베이스 쿼리 실행")  # 로그 기록 추가
 
     def READ(self, latest=False):
         try:
             self.CURSOR(latest)
             rows = self.cursor.fetchall()
-            # 결과를 딕셔너리 형태로 변환
             data = {}
             for row in rows:
                 data[row[0]] = {
@@ -41,15 +50,14 @@ class DB_READ:
                 }
             return data
         except Exception as e:
-            # 오류 발생 시 예외 처리
+            logging.error(f"데이터베이스 읽기 오류: {str(e)}")  # 오류 로그 추가
             raise HTTPException(status_code=500, detail=f"에러발생: {str(e)}")
         finally:
-            # 연결 종료
             self.conn.close()
 
-# DB에서 데이터를 가져와서 키-값 형태로 반환하는 API 엔드포인트
 @app.get("/api")
 async def get_sensor_data():
+    logging.info("API /api 호출됨")  # 로그 기록
     db_read = DB_READ()
     data = db_read.READ()
     if data:
@@ -59,6 +67,7 @@ async def get_sensor_data():
 
 @app.get("/api/latest")
 async def get_latest_sensor_data():
+    logging.info("API /api/latest 호출됨")  # 로그 기록
     db_read = DB_READ()
     data = db_read.READ(latest=True)
     if data:
@@ -66,6 +75,5 @@ async def get_latest_sensor_data():
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
-# 메인 함수
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8008)
