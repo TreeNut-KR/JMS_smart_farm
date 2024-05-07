@@ -13,15 +13,15 @@ class DB_READ:
     def CURSOR(self, latest=False):
         # 공통 쿼리 부분
         query = '''
-            SELECT idx, temperature, humidity, ground1, ground2 
-            FROM smartFarm 
+            SELECT id, temperature, humidity, ground1, ground2 
+            FROM ardu_data
         '''
         if latest:
             # 최신 레코드 쿼리 확장
-            query += 'ORDER BY created_at DESC LIMIT 1'
+            query += 'ORDER BY time DESC LIMIT 1'
         else:
             # 모든 레코드 쿼리 확장
-            query += 'WHERE date(created_at) <= date()'
+            query += 'WHERE date(time) <= date()'
 
         # 쿼리 실행
         self.cursor.execute(query)
@@ -52,7 +52,10 @@ class DB_READ:
 async def get_sensor_data():
     db_read = DB_READ()
     data = db_read.READ()
-    return JSONResponse(content=data)
+    if data:
+        return JSONResponse(content=data)
+    else:
+        return JSONResponse(content={"message": "데이터가 없습니다."})
 
 @app.get("/api/latest")
 async def get_latest_sensor_data():
