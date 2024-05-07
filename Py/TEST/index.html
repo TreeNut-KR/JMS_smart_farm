@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data Display</title>
+</head>
+<body>
+    <h2>Sensor Data</h2>
+    <div id="sensorData"></div>
+
+    <script>
+        // 센서 데이터를 서버에서 가져와서 화면에 표시하는 함수
+        async function fetchSensorData() {
+            try {
+                const response = await fetch('http://192.168.219.107:8008/api/latest');
+                const data = await response.json();
+
+                displayData(data);
+            } catch (error) {
+                console.error('Error fetching sensor data:', error);
+            }
+        }
+
+        // 받아온 데이터를 화면에 표시하는 함수
+        function displayData(data) {
+            const container = document.getElementById('sensorData');
+            container.innerHTML = ''; // 기존 내용을 비웁니다.
+
+            for (const [sensorId, sensorData] of Object.entries(data)) {
+                const sensorDiv = document.createElement('div');
+                sensorDiv.innerHTML = `
+                    <h3>Sensor ID: ${sensorId}</h3>
+                    <p>Temperature: ${sensorData.temperature}°C</p>
+                    <p>Humidity: ${sensorData.humidity}%</p>
+                    <p>Ground1: ${sensorData.ground1}</p>
+                    <p>Ground2: ${sensorData.ground2}</p>
+                `;
+                container.appendChild(sensorDiv);
+            }
+        }
+
+        // 페이지 로드 시 센서 데이터를 가져오도록 설정
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchSensorData();
+        });
+    </script>
+</body>
+</html>
