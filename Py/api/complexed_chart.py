@@ -18,28 +18,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+conn = sqlite3.connect('/home/jms/Documents/JMS_smart_farm/JMSPlant.db', check_same_thread=False)
+cursor = conn.cursor()
 
 class DB_READ:
-    def __init__(self):
-        self.conn = sqlite3.connect('/home/jms/문서/JMS/JMS/JMSPlant.db', check_same_thread=False)
-        self.cursor = self.conn.cursor()
-
     def CURSOR(self, latest=False):
         query = '''
-            SELECT id, temperature, humidity, ground1, ground2 
-            FROM ardu_data
+            SELECT idx, temperature, humidity, ground1, ground2 
+            FROM smartFarm
         '''
         if latest:
-            query += 'ORDER BY time DESC LIMIT 1'
+            query += 'ORDER BY created_at DESC LIMIT 1'
         else:
-            query += 'WHERE date(time) <= date()'
-        self.cursor.execute(query)
+            query += 'WHERE date(created_at) <= date()'
+        cursor.execute(query)
         logging.info("데이터베이스 쿼리 실행")  # 로그 기록 추가
 
     def READ(self, latest=False):
         try:
             self.CURSOR(latest)
-            rows = self.cursor.fetchall()
+            rows = cursor.fetchall()
             data = {}
             for row in rows:
                 data[row[0]] = {
@@ -53,7 +51,7 @@ class DB_READ:
             logging.error(f"데이터베이스 읽기 오류: {str(e)}")  # 오류 로그 추가
             raise HTTPException(status_code=500, detail=f"에러발생: {str(e)}")
         finally:
-            self.conn.close()
+            conn.close()
 
 @app.get("/api")
 async def get_sensor_data():

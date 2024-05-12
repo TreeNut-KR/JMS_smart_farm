@@ -53,7 +53,7 @@ class device_data:
             return index
         return None
     
-# if __name__ == "__main__":
-#     df = device_data()
-#     port = df.ar_get("USB")
-#     print(port)
+if __name__ == "__main__":
+    df = device_data()
+    port = df.ar_get("USB")
+    print(port)
