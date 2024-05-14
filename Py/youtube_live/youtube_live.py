@@ -54,10 +54,15 @@ def create_live_event(youtube, title, description, start_time, end_time):
 
     snippet = insert_broadcast_response["snippet"]
 
-    print("방송 ID: %s" % insert_broadcast_response["id"])
+    broadcast_id = insert_broadcast_response["id"]
+    print("방송 ID: %s" % broadcast_id)
     print("방송 제목: %s" % snippet["title"])
     print("예정된 시작 시간: %s" % snippet["scheduledStartTime"])
     print("예정된 종료 시간: %s" % snippet["scheduledEndTime"])
+
+    # 생성된 라이브 이벤트의 URL을 구성
+    live_event_url = f"https://www.youtube.com/watch?v={broadcast_id}"
+    print("라이브 이벤트 URL: %s" % live_event_url)
 
 if __name__ == "__main__":
     youtube = get_authenticated_service()
@@ -68,4 +73,4 @@ if __name__ == "__main__":
                           "2024-05-20T00:00:00.000Z",
                           "2024-05-20T01:00:00.000Z")
     except HttpError as e:
-        print("An HTTP error %d occurred:/n%s" % (e.resp.status, e.content))
+        print("HTTP 에러 %d 발생:/n%s" % (e.resp.status, e.content))
