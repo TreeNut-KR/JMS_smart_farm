@@ -19,12 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class DB_READ:
-    def __init__(self):
-        #DB 연결 경로 수정해야함
-        self.conn = sqlite3.connect('C:/JMS_SmartFarm_API/JMS_smart_farm/DB/20240213/JMSPlant_remake.db', check_same_thread=False)
-        self.cursor = self.conn.cursor()
+conn = sqlite3.connect('C:/JMS_SmartFarm_API/JMS_smart_farm/DB/20240213/JMSPlant_remake.db', check_same_thread=False)
+cursor = conn.cursor()
 
+class DB_READ:
     def CURSOR(self, control):
         query = '''
             SELECT id, temperature, humidity, ground1, ground2 
@@ -41,16 +39,17 @@ class DB_READ:
             print("7일 데이터 출력")
             query += "WHERE date(time) BETWEEN date('now', '-3 days') AND date('now')"
             
-        self.cursor.execute(query)
+        cursor.execute(query)
         logging.info("데이터베이스 쿼리 실행")  # 로그 기록 추가
 
     def READ(self, control=False):
         try:
             self.CURSOR(control)
-            rows = self.cursor.fetchall()
+            rows = cursor.fetchall()
             data = {}
             for row in rows:
-                data[row[0]] = {
+                data= {
+                    # 'id' : row[0],
                     'temperature': row[1],
                     'humidity': row[2],
                     'ground1': row[3],
@@ -61,20 +60,15 @@ class DB_READ:
             logging.error(f"데이터베이스 읽기 오류: {str(e)}")  # 오류 로그 추가
             raise HTTPException(status_code=500, detail=f"에러발생: {str(e)}")
         finally:
-            self.conn.close()
+            conn.close()
 
 class DB_SEND:
-    def __init__(self):
-        #DB 연결 경로 수정해야함
-        self.conn = sqlite3.connect('C:\JMS_SmartFarm_API\JMS_smart_farm\DB\JMSPlant.db', check_same_thread=False)
-        self.cursor = self.conn.cursor()
-    
     def CURSOR(self, LED, SYSFAN):
         qurey = '''
             INSERT INTO ArduinoControl (led, sysfan) VALUES (?, ?)
         '''
-        self.cursor.execute(qurey, (LED, SYSFAN))
-        self.conn.commit()
+        cursor.execute(qurey, (LED, SYSFAN))
+        conn.commit()
         logging.info("데이터베이스 쿼리 실행")  # 로그 기록 추가
 
     def SEND(self, LED, SYSFAN):
@@ -84,9 +78,8 @@ class DB_SEND:
             logging.error(f"데이터베이스 읽기 오류: {str(e)}")  # 오류 로그 추가
             raise HTTPException(status_code=500, detail=f"에러발생: {str(e)}")
         finally:
-            self.conn.close()
+            conn.close()
             return 1
-
 
 #DB 내 모든 데이터 출력
 @app.get("/api")
