@@ -68,7 +68,7 @@ async def get_sensor_data():
     rows = execute_read_query(control=0)
     data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4], ceated_at=row[5]) for row in rows]
     if data:
-        return data[0]
+        return data
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
