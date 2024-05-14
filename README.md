@@ -21,6 +21,7 @@
  ┃ ┃ ┃ ┗ 📜[index.html](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/latest_data/index.html)  
  ┃ ┃ ┃  
  ┃ ┃ ┣ 📜[Ar_serial.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/Ar_serial.py)  
+ ┃ ┃ ┣ 📜ar백업.py  
  ┃ ┃ ┣ 📜[device.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/device.py)  
  ┃ ┃ ┣ 📜[GetUpdate.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/GetUpdate.py)  
  ┃ ┃ ┗ 📜[USB_cam.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino/USB_cam.py)  
@@ -43,8 +44,10 @@
  ┃ ┃ ┃ ┗ 📜[index.html](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/WebRTC/templates/index.html)  
  ┃ ┃ ┃  
  ┃ ┃ ┗ 📜[main.py](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/WebRTC/main.py)  
- ┃ ┃  
- ┃ ┗ 📜[Arduino.zip](https://github.com/CutTheWire/JMS_smart_farm/blob/main/Py/Arduino.zip)  
+ ┃ ┃   
+ ┃ ┣ 📂youtube_live  
+ ┃ ┃ ┣ 📜.env  
+ ┃ ┃ ┗ 📜youtube_live.py  
  ┃   
  ┣ 📜[JMSPlant.db](https://github.com/CutTheWire/JMS_smart_farm/blob/main/JMSPlant.db)  
  ┣ 📜.gitignore  
@@ -67,4 +70,14 @@
    
 ---
 ## 🔐 .env
-
+- 경로 : `./Py/youtube_live/.env`
+```
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_PROJECT_ID=your_project_id
+GOOGLE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+GOOGLE_TOKEN_URI=https://oauth2.googleapis.com/token
+GOOGLE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+GOOGLE_REDIRECT_URIS=your_redirect_uris
+GOOGLE_JAVASCRIPT_ORIGINS=your_javascript_origins
+```
