@@ -32,7 +32,7 @@ def execute_read_query(control):
     conn = get_db_connection()
     cursor = conn.cursor()
     query = '''
-        SELECT idx, temperature, humidity, ground1, ground2 
+        SELECT idx, temperature, humidity, ground1, ground2, created_at 
         FROM smartFarm 
     '''
 
@@ -66,9 +66,9 @@ def execute_update_query(LED, SYSFAN):
 async def get_sensor_data():
     logging.info("API /api 호출됨")
     rows = execute_read_query(control=0)
-    data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4]) for row in rows]
+    data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4], ceated_at=row[5]) for row in rows]
     if data:
-        return JSONResponse(content={"data": data})
+        return data[0]
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
@@ -78,7 +78,7 @@ async def get_latest_sensor_data():
     rows = execute_read_query(control=1)
     data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4]) for row in rows]
     if data:
-        return JSONResponse(content={"data": data})
+        return data[0]
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
     
@@ -88,7 +88,7 @@ async def get_week_sensor_data():
     rows = execute_read_query(control=2)
     data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4]) for row in rows]
     if data:
-        return JSONResponse(content={"data": data})
+        return data[0]
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
     
