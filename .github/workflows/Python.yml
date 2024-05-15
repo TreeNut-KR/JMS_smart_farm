@@ -21,4 +21,4 @@ jobs:
         pip install -r requirements.txt
         
     - name: Run tests
-      run: python JMS_smart_farm/Py/api/complexed_chart.py
+      run: python Py/api/complexed_chart.py
