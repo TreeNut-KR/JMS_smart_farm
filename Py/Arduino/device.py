@@ -1,8 +1,8 @@
 import serial.tools.list_ports
 # from pygrabber.dshow_graph import FilterGraph
 import subprocess
+import re
 from typing import Union
-
 class device_data:
     def ar_get(self, mod: str) -> Union[str, None]:
         '''
@@ -24,7 +24,7 @@ class device_data:
     #             return device_index
     #         else:
     #             return None
-    
+
     def cam_get(self, mod: str) -> Union[int, None]:
         '''
         연결된 비디오 데이터 (리눅스용)
@@ -32,23 +32,13 @@ class device_data:
         command = "v4l2-ctl --list-devices"
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
         
-        # 결과 문자열을 줄 단위로 분리
-        lines = result.stdout.split('\n')
-        device_path = None
+        # 결과 문자열 전체에서 카메라 이름과 /dev/videoX 형식의 경로를 찾음
+        pattern = rf'({mod}.*?)(/dev/video\d+)'
+        matches = re.findall(pattern, result.stdout, re.DOTALL)
         
-        # 카메라 이름이 나타나는 줄을 찾고, 그 다음 줄에서 디바이스 경로를 찾음
-        for i, line in enumerate(lines):
-            if mod in line:
-                # 다음 줄(들)에서 /dev/videoX 형태의 경로 찾기
-                for j in range(i+1, len(lines)):
-                    if '/dev/video' in lines[j]:
-                        device_path = lines[j].strip()
-                        break
-                break
-        
-        # 디바이스 경로에서 인덱스 추출
-        if device_path:
-            # 경로의 마지막 부분에서 숫자만 추출
+        if matches:
+            # 첫 번째 매치의 두 번째 그룹(/dev/videoX)에서 숫자만 추출
+            device_path = matches[0][1]
             index = int(''.join(filter(str.isdigit, device_path)))
             return index
         return None

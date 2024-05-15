@@ -33,41 +33,47 @@ def get_db_connection():
 def execute_read_query(control, checkdate):
     conn = get_db_connection()
     cursor = conn.cursor()
+    
     query = '''
         SELECT idx, temperature, humidity, ground1, ground2, created_at 
         FROM smartFarm 
     '''
-
     if control == 0:
         print("전체 데이터 출력")
         query += 'WHERE date(created_at) <= date()'
+
     elif control == 1:
         print("최신 데이터 출력")
         query += 'ORDER BY created_at DESC LIMIT 1'
+
     elif control == 2:
         print("선택한 날짜의 데이터출력")
         datequery = " WHERE updated_at >= datetime('{}', '-1 day') AND updated_at < datetime('{}', '+1 day') GROUP BY strftime('%Y-%m-%d %H', updated_at) ORDER BY updated_at"
         query += datequery.format(checkdate, checkdate)
+
     elif control == 3:
         print("선택한 주의 데이터출력")
         datequery = "WHERE updated_at >= datetime('{}', 'weekday 0', '-6 days')AND updated_at < datetime('{}', 'weekday 0', '+1 day')GROUP BY strftime('%Y-%m-%d', updated_at) ORDER BY updated_at ASC"
         query += datequery.format(checkdate, checkdate, checkdate, checkdate)
+
     elif control == 4:
         print("선택한 달의 데이터출력")
         datequery = "WHERE updated_at >= date('{}', 'start of month') AND updated_at < date('{}', 'start of month', '+1 month') GROUP BY strftime('%Y-%m-%d', updated_at) ORDER BY updated_at ASC"
         query += datequery.format(checkdate, checkdate)
 
     cursor.execute(query)
-    logging.info("데이터베이스 쿼리 실행")
     rows = cursor.fetchall()
     conn.close()
+    logging.info("데이터베이스 쿼리 실행")
     return rows
 
 def execute_update_query(LED, SYSFAN):
     conn = get_db_connection()
     cursor = conn.cursor()
+
     updated_at = datetime.now()  # 현재 시간을 가져옵니다.
     query = "UPDATE ArduinoControl SET LED = ?, SYSFAN = ?, updated_at = ? WHERE idx = 1"
+
     cursor.execute(query, (LED, SYSFAN, updated_at))
     conn.commit()
     conn.close()
