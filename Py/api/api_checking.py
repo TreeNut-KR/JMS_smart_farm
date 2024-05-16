@@ -12,11 +12,13 @@ def test_read_main():
         response = client.get(get_point)
         assert response.status_code == 200
     
-    get_data_add_endpoint = ["/api/date", "/api/week", "/api/month"]
-    for post_point in get_data_add_endpoint:
-        response = client.get(post_point+"/?checkdate=2024-05-16")
-        assert response.status_code == 200
-    
+
+    response = client.get("/api/month/?checkdate=2024-05-16")
+    assert response.status_code == 200
+
+    response = client.get("/api/week/?year=2024&month=5&week=2")
+    assert response.status_code == 200
+
     # senddata POST 요청은 별도로 처리
     response_api_senddata = client.post("/api/senddata", json={"LED": True, "SYSFAN": False})
     assert response_api_senddata.status_code == 200
