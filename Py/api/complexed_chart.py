@@ -38,6 +38,8 @@ def execute_read_query(control, checkdate):
         SELECT idx, temperature, humidity, ground1, ground2, created_at 
         FROM smartFarm 
     '''
+    i = 0
+
     if control == 0:
         print("전체 데이터 출력")
         query += 'WHERE date(created_at) <= date()'
@@ -48,17 +50,18 @@ def execute_read_query(control, checkdate):
 
     elif control == 2:
         print("선택한 날짜의 데이터출력")
-        datequery = " WHERE updated_at >= datetime('{}', '-1 day') AND updated_at < datetime('{}', '+1 day') GROUP BY strftime('%Y-%m-%d %H', updated_at) ORDER BY updated_at"
-        query += datequery.format(checkdate, checkdate)
+        datequery = "WHERE date(created_at) = date('{}')"
+        query += datequery.format(checkdate)
 
     elif control == 3:
         print("선택한 주의 데이터출력")
-        datequery = "WHERE updated_at >= datetime('{}', 'weekday 0', '-6 days')AND updated_at < datetime('{}', 'weekday 0', '+1 day')GROUP BY strftime('%Y-%m-%d', updated_at) ORDER BY updated_at ASC"
-        query += datequery.format(checkdate, checkdate, checkdate, checkdate)
+        # 선택한 날짜가 속한 주의 시작일(월요일)과 종료일(일요일)을 계산합니다.
+        datequery = "WHERE date(created_at) BETWEEN date('{}') AND date('{}', '+6 days') GROUP BY date(created_at) ORDER BY date(created_at) ASC"
+        query += datequery.format(checkdate, checkdate)
 
     elif control == 4:
         print("선택한 달의 데이터출력")
-        datequery = "WHERE updated_at >= date('{}', 'start of month') AND updated_at < date('{}', 'start of month', '+1 month') GROUP BY strftime('%Y-%m-%d', updated_at) ORDER BY updated_at ASC"
+        datequery = "WHERE date(created_at) BETWEEN date('{}') AND date('{}', '+30 days') GROUP BY date(created_at) ORDER BY date(created_at) ASC"
         query += datequery.format(checkdate, checkdate)
 
     cursor.execute(query)
@@ -84,7 +87,7 @@ def execute_update_query(LED, SYSFAN):
 async def get_sensor_data():
     logging.info("API /api 호출됨")
     rows = execute_read_query(control=0, checkdate=None)
-    data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4], ceated_at=row[5]) for row in rows]
+    data = [dict(All_temperature=row[1], All_humidity=row[2], All_ground1=row[3], All_ground2=row[4], All_ceated_at=row[5]) for row in rows]
     if data:
         return data
     else:
@@ -95,7 +98,7 @@ async def get_sensor_data():
 async def get_latest_sensor_data():
     logging.info("API /api/latest 호출됨")
     rows = execute_read_query(control=1, checkdate = None)
-    data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4]) for row in rows]
+    data = [dict(Latest_temperature=row[1], Latest_humidity=row[2], Latest_ground1=row[3], Latest_ground2=row[4]) for row in rows]
     if data:
         return data[0]
     else:
@@ -107,7 +110,7 @@ async def get_latest_sensor_data():
 async def get_date_sensor_data(inputdata : Startdate):
     logging.info("API /api/date 호출됨")  # 로그 기록
     rows = execute_read_query(control=2, checkdate = inputdata.checkdate)
-    data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4]) for row in rows]
+    data = [dict(Date_temperature=row[1], Date_humidity=row[2], Date_ground1=row[3], Date_ground2=row[4]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
@@ -119,7 +122,7 @@ async def get_date_sensor_data(inputdata : Startdate):
 async def get_week_sensor_data(inputdata : Startdate):
     logging.info("API /api/week 호출됨")  # 로그 기록
     rows = execute_read_query(control=3, checkdate=inputdata.checkdate)
-    data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4]) for row in rows]
+    data = [dict(Week_temperature=row[1], Week_humidity=row[2], Week_ground1=row[3], Week_ground2=row[4]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
@@ -131,7 +134,7 @@ async def get_week_sensor_data(inputdata : Startdate):
 async def get_month_sensor_data(inputdata : Startdate):
     logging.info("API /api/month 호출됨")  # 로그 기록
     rows = execute_read_query(control=4, checkdate=inputdata.checkdate)
-    data = [dict(temperature=row[1], humidity=row[2], ground1=row[3], ground2=row[4]) for row in rows]
+    data = [dict(Month_temperature=row[1], Month_humidity=row[2], Month_ground1=row[3], Month_ground2=row[4]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
