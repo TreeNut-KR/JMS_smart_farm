@@ -20,9 +20,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-class Startdate(BaseModel):
-    checkdate : str
-
 class JMSUpdate(BaseModel):
     LED : bool
     SYSFAN : bool
@@ -106,10 +103,10 @@ async def get_latest_sensor_data():
     
 
 #DB 내 선택한 날짜의 데이터 출력
-@app.post("/api/date")
-async def get_date_sensor_data(inputdata : Startdate):
+@app.get("/api/date")
+async def get_date_sensor_data(checkdate : str):
     logging.info("API /api/date 호출됨")  # 로그 기록
-    rows = execute_read_query(control=2, checkdate = inputdata.checkdate)
+    rows = execute_read_query(control=2, checkdate = checkdate)
     data = [dict(Date_temperature=row[1], Date_humidity=row[2], Date_ground1=row[3], Date_ground2=row[4]) for row in rows]
     if data:
         return JSONResponse(content=data)
@@ -118,10 +115,10 @@ async def get_date_sensor_data(inputdata : Startdate):
 
 
 #DB 내 선택한 날짜가 해당하는 주의 데이터 출력
-@app.post("/api/week")
-async def get_week_sensor_data(inputdata : Startdate):
+@app.get("/api/week")
+async def get_week_sensor_data(checkdate : str):
     logging.info("API /api/week 호출됨")  # 로그 기록
-    rows = execute_read_query(control=3, checkdate=inputdata.checkdate)
+    rows = execute_read_query(control=3, checkdate=checkdate)
     data = [dict(Week_temperature=row[1], Week_humidity=row[2], Week_ground1=row[3], Week_ground2=row[4]) for row in rows]
     if data:
         return JSONResponse(content=data)
@@ -130,10 +127,10 @@ async def get_week_sensor_data(inputdata : Startdate):
     
     
 #DB 내 선택한 날짜가 해당하는 달의 데이터 출력
-@app.post("/api/month")
-async def get_month_sensor_data(inputdata : Startdate):
+@app.get("/api/month")
+async def get_month_sensor_data(checkdate : str):
     logging.info("API /api/month 호출됨")  # 로그 기록
-    rows = execute_read_query(control=4, checkdate=inputdata.checkdate)
+    rows = execute_read_query(control=4, checkdate=checkdate)
     data = [dict(Month_temperature=row[1], Month_humidity=row[2], Month_ground1=row[3], Month_ground2=row[4]) for row in rows]
     if data:
         return JSONResponse(content=data)
