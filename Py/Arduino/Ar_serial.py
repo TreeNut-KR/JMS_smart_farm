@@ -10,7 +10,7 @@ from device import device_data
 
 class Database:
     def __init__(self) -> None:
-        self.directory = '/home/jms/Documents/JMS_smart_farm/' # 우분투 기준
+        self.directory = './JMS_smart_farm/' # 우분투 기준
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
         self.conn = sqlite3.connect(self.directory + '/JMSPlant.db', check_same_thread=False) # check_same_thread 파라미터를 False로 설정
@@ -58,7 +58,7 @@ class Database:
         count = self.cursor.fetchone()[0]
         if count == 0:
             query = "INSERT INTO ArduinoControl (led, sysfan, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)" # 데이터가 없으면 기본 데이터 삽입
-            self.cursor.execute(query, (True, False)) 
+            self.cursor.execute(query, (True, False))
             self.conn.commit()
 
     def smartFarm_insert_data(self, IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2) -> None:
@@ -81,18 +81,10 @@ class Ardu(device_data):
         self.port = self.ar_get("USB")
         self.arduino = None
         self.defl = "0"
-        self.IsRun = None
-        self.sysfan = None
-        self.wpump = None
-        self.led = None
-        self.humidity = None
-        self.temperature = None
-        self.ground1 = None
-        self.ground2 = None
-        self.a =1
         self.last_print_time = time.time()
+
         try:
-            self.arduino = serial.Serial(self.port , 9600)
+            self.arduino = serial.Serial(self.port, 9600)
         except Exception as e:
             print(f"Port Error: {e}")
             exit(1)
@@ -143,8 +135,8 @@ class Ardu(device_data):
             self.arduino.write(message.encode()) # 시리얼 통신을 통해 아두이노로 메시지 보내기
 
     def update_data(self) -> None:
-        if time.time() - self.last_print_time < 1:
-            return 
+        if time.time() - self.last_print_time < 60:
+            return
         # print(self.IsRun, self.sysfan, self.wpump, self.led, self.humidity, self.temperature, self.ground1, self.ground2)
         self.send_data()
         self.db.smartFarm_insert_data(self.IsRun, self.sysfan, self.wpump, self.led, self.humidity, self.temperature, self.ground1, self.ground2)
@@ -153,5 +145,5 @@ class Ardu(device_data):
 if __name__ == "__main__":
     Ar = Ardu()
     while True:
-        Ar.read_data()    
+        Ar.read_data()
         Ar.update_data()

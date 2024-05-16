@@ -20,6 +20,7 @@ def check_libraries():
             elif lib == "python_dotenv":
                 # python-dotenv 패키지는 __version__을 직접 제공하지 않으므로 다른 방식으로 버전을 확인해야 합니다.
                 from dotenv import find_dotenv
+                find_dotenv
                 version = "버전 정보 없음; 설치된 것으로 간주"
             else:
                 version = "버전 정보 없음"
