@@ -10,10 +10,10 @@ from device import device_data
 
 class Database:
     def __init__(self) -> None:
-        self.directory = './JMS_smart_farm/' # 우분투 기준
+        self.directory = './' # 우분투 기준
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
-        self.conn = sqlite3.connect(self.directory + '/JMSPlant.db', check_same_thread=False) # check_same_thread 파라미터를 False로 설정
+        self.conn = sqlite3.connect(self.directory+'/JMSPlant.db', check_same_thread=False) # check_same_thread 파라미터를 False로 설정
         self.cursor = self.conn.cursor()
         self.create_table()
         self.check_and_insert_default_data()
@@ -61,17 +61,18 @@ class Database:
             self.cursor.execute(query, (True, False))
             self.conn.commit()
 
-    def smartFarm_insert_data(self, IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2) -> None:
+    def smartFarm_insert_data(self, data) -> None:
         '''
         DB에 데이터 삽입
         '''
+        
         current_time = datetime.now(timezone(timedelta(hours=9)))
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
         query = """
         INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """
-        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,current_time_str, current_time_str))
+        self.cursor.execute(query, (1, data.get("sysfan"), data.get("wpump"),  data.get("led"),  data.get("humidity"),  data.get("temperature"), data.get("ground1"), data.get("ground2"),current_time_str, current_time_str))
         self.conn.commit()
 
 class Ardu(device_data):
@@ -80,7 +81,7 @@ class Ardu(device_data):
         self.db = Database()
         self.port = self.ar_get("USB")
         self.arduino = None
-        self.defl = "0"
+        self.data = {"isrun": False, "sysfan": False, "wpump": False, "led": False, "humidity": 0.0, "temperature": 0.0, "ground1": 0, "ground2": 0}
         self.last_print_time = time.time()
 
         try:
@@ -91,59 +92,58 @@ class Ardu(device_data):
         time.sleep(2)
 
     def parse_data(self, data_line):
-        data_handlers = { # 데이터 타입에 따라 처리하는 함수 매핑
-            "IsRun": lambda x: bool(int(x)),
-            "SYSFAN": lambda x: bool(int(x)),
-            "WPUMP": lambda x: bool(int(x)),
-            "LED": lambda x: bool(int(x)),
-            "Humidity": lambda x: float(x.split("%")[0]),
-            "Temperature": lambda x: float(x.split("*C")[0]),
-            "Ground1": lambda x: round((int(x) / 1024) * 100, 1),
-            "Ground2": lambda x: round((int(x) / 1024) * 100, 1),
+        data_handlers = {
+            "isrun": lambda x: bool(int(x)),
+            "sysfan": lambda x: bool(int(x)),
+            "wpump": lambda x: bool(int(x)),
+            "led": lambda x: bool(int(x)),
+            "humidity": lambda x: float(x.split("%")[0]), # "%"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
+            "temperature": lambda x: float(x.split("*C")[0]), # "*C"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
+            "ground1": lambda x: round((int(x) / 1024) * 100, 1),
+            "ground2": lambda x: round((int(x) / 1024) * 100, 1),
         }
 
         key, value = data_line.split(":")
-        key = key.strip()
+        key = key.strip().lower() # 키를 소문자로 변환
         value = value.strip()
-
         if key in data_handlers: # 데이터 핸들링 함수가 있는 경우, 해당 함수로 값 처리
-            return key, data_handlers[key](value)
-        return key, value
+            handled_value = data_handlers[key](value)
+            self.data[key] = handled_value
+        else:
+            pass
 
     def read_data(self) -> None:
-        '''
-        아두이노에서 보낸 데이터를 파이썬에 변수로 저장, 출력
-        '''
+        data = None 
         if self.arduino.in_waiting > 0:
-            data = self.arduino.readline().decode().rstrip() # 아두이노에서 보낸 데이터를 data에 임시저장
+            try:    
+                data = self.arduino.readline().decode().rstrip()
+            except:
+                pass
         if not data:
             return
         
-        key, value = self.parse_data(data)
-        if hasattr(self, key.lower()): # 속성 이름을 동적으로 설정
-            setattr(self, key.lower(), value)
+        self.parse_data(data)
 
     def send_data(self):
-        '''
-        데이터베이스에서 아두이노의 센서(LED, SYSFAN) 설정값을 가져와서 아두이노로 보냄
-        '''
         self.db.cursor.execute("SELECT led, sysfan FROM ArduinoControl ORDER BY idx DESC LIMIT 1")
         result = self.db.cursor.fetchone()
         if result:
             led, sysfan = result
-            message = f"{int(led)},{int(sysfan)}" # 아두이노로 보낼 메시지 구성
-            self.arduino.write(message.encode()) # 시리얼 통신을 통해 아두이노로 메시지 보내기
+            message = f"{int(led)},{int(sysfan)}"
+            self.arduino.write(message.encode())
 
-    def update_data(self) -> None:
-        if time.time() - self.last_print_time < 60:
+    def update(self) -> None:
+        if time.time() - self.last_print_time < 3:
             return
-        # print(self.IsRun, self.sysfan, self.wpump, self.led, self.humidity, self.temperature, self.ground1, self.ground2)
+        # 딕셔너리의 값들을 출력
+        print(" ".join(f"{k}: {v}" for k, v in self.data.items()))
         self.send_data()
-        self.db.smartFarm_insert_data(self.IsRun, self.sysfan, self.wpump, self.led, self.humidity, self.temperature, self.ground1, self.ground2)
-        self.last_print_time = time.time()  # 저장 시간을 업데이트
+        # 딕셔너리를 이용하여 데이터베이스 삽입
+        self.db.smartFarm_insert_data(self.data)
+        self.last_print_time = time.time()
 
 if __name__ == "__main__":
     Ar = Ardu()
     while True:
         Ar.read_data()
-        Ar.update_data()
+        Ar.update()
