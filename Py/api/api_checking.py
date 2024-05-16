@@ -7,14 +7,14 @@ client = TestClient(app)
 
 def test_read_main():
     # 요청을 보낼 주소 목록
-    get_endpoints = ["/api", "/api/latest"]
+    get_endpoints = ["/api", "/api/latest", ]
     for get_point in get_endpoints:
         response = client.get(get_point)
         assert response.status_code == 200
     
-    post_endpoints = ["/api/date", "/api/week", "/api/month"]
-    for post_point in post_endpoints:
-        response = client.post(post_point, json={"checkdate": "2024-05-01"})
+    get_data_add_endpoint = ["/api/date", "/api/week", "/api/month"]
+    for post_point in get_data_add_endpoint:
+        response = client.get(post_point+"/?checkdate=2024-05-16")
         assert response.status_code == 200
     
     # senddata POST 요청은 별도로 처리

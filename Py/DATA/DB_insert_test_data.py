@@ -4,7 +4,7 @@ from sqlite3 import Error
 def create_connection():
     conn = None;
     try:
-        conn = sqlite3.connect('./JMSPlant.db') # 상대 경로에 데이터베이스 연결 생성
+        conn = sqlite3.connect('./JMSPlant_test.db') # 상대 경로에 데이터베이스 연결 생성
         return conn
     except Error as e:
         print(e)

@@ -25,7 +25,7 @@ class JMSUpdate(BaseModel):
     SYSFAN : bool
 
 def get_db_connection():
-    return sqlite3.connect('./JMSPlant.db', check_same_thread=False)
+    return sqlite3.connect('./JMSPlant_test.db', check_same_thread=False)
 
 def execute_read_query(control, checkdate):
     conn = get_db_connection()
@@ -95,7 +95,7 @@ async def get_sensor_data():
 async def get_latest_sensor_data():
     logging.info("API /api/latest 호출됨")
     rows = execute_read_query(control=1, checkdate = None)
-    data = [dict(Latest_temperature=row[1], Latest_humidity=row[2], Latest_ground1=row[3], Latest_ground2=row[4]) for row in rows]
+    data = [dict(Latest_temperature=row[1], Latest_humidity=row[2], Latest_ground1=row[3], Latest_ground2=row[4], All_ceated_at=row[5]) for row in rows]
     if data:
         return data[0]
     else:
@@ -104,10 +104,10 @@ async def get_latest_sensor_data():
 
 #DB 내 선택한 날짜의 데이터 출력
 @app.get("/api/date")
-async def get_date_sensor_data(checkdate : str):
+async def get_date_sensor_data(checkdate : str): # date?checkdate=yyyy-mm-dd
     logging.info("API /api/date 호출됨")  # 로그 기록
     rows = execute_read_query(control=2, checkdate = checkdate)
-    data = [dict(Date_temperature=row[1], Date_humidity=row[2], Date_ground1=row[3], Date_ground2=row[4]) for row in rows]
+    data = [dict(Date_temperature=row[1], Date_humidity=row[2], Date_ground1=row[3], Date_ground2=row[4], All_ceated_at=row[5]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
@@ -116,10 +116,10 @@ async def get_date_sensor_data(checkdate : str):
 
 #DB 내 선택한 날짜가 해당하는 주의 데이터 출력
 @app.get("/api/week")
-async def get_week_sensor_data(checkdate : str):
+async def get_week_sensor_data(checkdate : str): # week?checkdate=yyyy-mm-dd
     logging.info("API /api/week 호출됨")  # 로그 기록
     rows = execute_read_query(control=3, checkdate=checkdate)
-    data = [dict(Week_temperature=row[1], Week_humidity=row[2], Week_ground1=row[3], Week_ground2=row[4]) for row in rows]
+    data = [dict(Week_temperature=row[1], Week_humidity=row[2], Week_ground1=row[3], Week_ground2=row[4], All_ceated_at=row[5]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
@@ -128,10 +128,10 @@ async def get_week_sensor_data(checkdate : str):
     
 #DB 내 선택한 날짜가 해당하는 달의 데이터 출력
 @app.get("/api/month")
-async def get_month_sensor_data(checkdate : str):
+async def get_month_sensor_data(checkdate : str): # month?checkdate=yyyy-mm-dd
     logging.info("API /api/month 호출됨")  # 로그 기록
     rows = execute_read_query(control=4, checkdate=checkdate)
-    data = [dict(Month_temperature=row[1], Month_humidity=row[2], Month_ground1=row[3], Month_ground2=row[4]) for row in rows]
+    data = [dict(Month_temperature=row[1], Month_humidity=row[2], Month_ground1=row[3], Month_ground2=row[4], All_ceated_at=row[5]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
