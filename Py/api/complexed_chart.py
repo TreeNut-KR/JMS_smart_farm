@@ -70,14 +70,7 @@ def execute_read_query(control, checkdate):
         query += 'ORDER BY created_at DESC LIMIT 1'
 
     elif control == 2: # 선택한 날짜의 데이터출력
-        datequery = '''
-            WHERE date(created_at) = date('{}')
-            AND hour(created_at) IN (00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23)
-            AND minute(created_at) = 00
-            AND second(created_at) = 00
-            ORDER BY hour(created_at)
-
-        '''
+        datequery = "WHERE date(created_at) = date('{}')"
         query += datequery.format(checkdate)
 
     elif control == 3: # 선택한 주의 데이터출력
@@ -168,7 +161,12 @@ async def get_date_sensor_data(checkdate : str): # date?checkdate=yyyy-mm-dd
 
 #DB 내 선택한 날짜가 해당하는 주의 데이터 출력
 @app.get("/api/week")
-async def get_week_sensor_data(year : int, month : int, week : int): # week?checkdate=yyyy-mm-dd
+async def get_week_sensor_data(year : int, month : int, week : int): # week?year=yyyy&month=mm&week=n
+    '''
+    year  : int  => 년도(yyyy)
+    month : int  => 월(1 ~ 12)
+    week  : int  => 주차(1 ~ 5)
+    '''
     logging.info("API /api/week 호출됨")  # 로그 기록
     checkdate = get_week(year, month, week)
     rows = execute_read_query(control=3, checkdate=checkdate)
