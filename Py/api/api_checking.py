@@ -11,14 +11,14 @@ def test_read_main():
     for get_point in get_endpoints:
         response = client.get(get_point)
         assert response.status_code == 200
-    
 
-    get_endpoints = ["/api/date", "/api/month"]
-    for get_point in get_endpoints:
-        response = client.get(get_point+"?checkdate=2024-05-16")
-        assert response.status_code == 200
-        
+    response = client.post("/api/date", json={"date": "2024-05-16"})
+    assert response.status_code == 200
+
     response = client.post("/api/week", json={"year": 2024,"month": 5,"week": 2})
+    assert response.status_code == 200
+
+    response = client.post("/api/month", json={"date": "2024-05-16"})
     assert response.status_code == 200
 
     # senddata POST 요청은 별도로 처리

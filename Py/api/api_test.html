@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>주 데이터 요청</title>
+</head>
+<body>
+    <h2>주 데이터 요청</h2>
+    <label for="monthInput">월:</label>
+    <input id="monthInput" type="number" min="1" max="12" required>
+    <label for="weekInput">주:</label>
+    <input id="weekInput" type="number" min="1" max="5" required>
+    <button id="requestData">데이터 요청하기</button>
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('requestData').addEventListener('click', function() {
+            const month = document.getElementById('monthInput').value;
+            const week = document.getElementById('weekInput').value;
+
+            // 입력 검증
+            if(month < 1 || month > 12 || week < 1 || week > 5) {
+                alert('월은 1에서 12 사이, 주는 1에서 5 사이의 숫자여야 합니다.');
+                return;
+            }
+
+            const data = {
+                year: 2024,
+                month: month,
+                week: week
+            };
+
+            fetch('http://localhost:8008/api/week', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('네트워크 응답이 올바르지 않습니다.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const responseDiv = document.getElementById('response');
+                responseDiv.innerHTML = ''; // 기존 내용 초기화
+                data.forEach(item => {
+                    const dateDiv = document.createElement('div');
+                    dateDiv.innerHTML = `
+                        <h3>${item.created_at}</h3>
+                        <p>온도: ${item.Week_temperature || '정보 없음'}</p>
+                        <p>습도: ${item.Week_humidity || '정보 없음'}</p>
+                        <p>토양 1: ${item.Week_ground1 || '정보 없음'}</p>
+                        <p>토양 2: ${item.Week_ground2 || '정보 없음'}</p>
+                    `;
+                    responseDiv.appendChild(dateDiv);
+                });
+            })
+            .catch(error => {
+                console.error('요청 중에 문제가 발생했습니다:', error);
+                document.getElementById('response').textContent = '요청 중에 문제가 발생했습니다: ' + error;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -26,10 +26,17 @@ class JMSUpdate(BaseModel):
     LED : bool
     SYSFAN : bool
 
+class DateDataRequest(BaseModel):
+    date : str
+
 class WeekDataRequest(BaseModel):
     year: int
     month: int
     week: int
+
+class MonthDataRequest(BaseModel):
+    date : str
+
 
 def get_db_connection():
     return sqlite3.connect('./JMSPlant_test.db', check_same_thread=False)
@@ -137,7 +144,7 @@ def execute_update_query(LED, SYSFAN):
 
 
 @app.get("/api")
-async def get_sensor_data():
+async def get_data():
     logging.info("API /api 호출됨")
     rows = execute_read_query(control=0, checkdate=None)
 
@@ -152,7 +159,7 @@ async def get_sensor_data():
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
 @app.get("/api/latest")
-async def get_latest_sensor_data():
+async def get_latest_data():
     logging.info("API /api/latest 호출됨")
     rows = execute_read_query(control=1, checkdate = None)
 
@@ -167,10 +174,10 @@ async def get_latest_sensor_data():
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
 #DB 내 선택한 날짜의 데이터 출력
-@app.get("/api/date")
-async def get_date_sensor_data(checkdate : str): # date?checkdate=yyyy-mm-dd
+@app.post("/api/date")
+async def post_date_data(request_data : DateDataRequest):
     logging.info("API /api/date 호출됨")  # 로그 기록
-    rows = execute_read_query(control=2, checkdate = checkdate)
+    rows = execute_read_query(control=2, checkdate = request_data.date)
     data = [dict(Date_temperature=row[1], 
                  Date_humidity=row[2], 
                  Date_ground1=row[3], 
@@ -200,10 +207,10 @@ async def post_week_data(request_data: WeekDataRequest):
         return JSONResponse(content={"message": "데이터가 없습니다."})
     
 #DB 내 선택한 날짜가 해당하는 달의 데이터 출력
-@app.get("/api/month")
-async def get_month_sensor_data(checkdate : str): # month?checkdate=yyyy-mm-dd
+@app.post("/api/month")
+async def post_month_data(request_data: MonthDataRequest):
     logging.info("API /api/month 호출됨")  # 로그 기록
-    rows = execute_read_query(control=4, checkdate=checkdate)
+    rows = execute_read_query(control=4, checkdate=request_data.date)
 
     data = [dict(Month_temperature=row[1], 
                  Month_humidity=row[2], 
