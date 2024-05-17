@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
 import math
 import sqlite3
@@ -26,21 +26,15 @@ class JMSUpdate(BaseModel):
     LED : bool
     SYSFAN : bool
 
+class WeekDataRequest(BaseModel):
+    year: int
+    month: int
+    week: int
+
 def get_db_connection():
     return sqlite3.connect('./JMSPlant_test.db', check_same_thread=False)
 
-def get_week(year, month, week_index=0):
-    '''
-    Returns the first day of the specified week in the given month and year.
-    
-    Args:
-        year (int): The year.
-        month (int): The month.
-        week_index (int, optional): The index of the week, starting from 0 (default is 0).
-    
-    Returns:
-        datetime.datetime: The first day of the specified week, or None if the week index is out of range.
-    '''
+def week_date(year: int, month: int, week_index: int = 0) -> datetime:
     first_day_of_month, days_in_month = calendar.monthrange(year, month)
 
     if first_day_of_month != 0:
@@ -48,12 +42,41 @@ def get_week(year, month, week_index=0):
     else:
         first_day_of_week = 1
 
-    week_start_day = first_day_of_week + (week_index * 7)
-    check_date = f"{year}-{month:02d}-{week_start_day:02d}"
-
+    week_start_day = first_day_of_week + ((week_index-1) * 7)
+    check_date = f"{year}-{month:02d}-{week_start_day:02d}" # YYYY-MM-DD 형식으로변경
+    print(check_date)
     if 0 >= week_start_day or days_in_month < week_start_day:
         return None
     return datetime.strptime(check_date, "%Y-%m-%d")
+
+def week_7days(start_date: datetime) -> list:
+    # 주차의 시작일부터 7일간의 날짜 리스트 생성
+    date_list = [start_date + timedelta(days=i) for i in range(7)]
+
+    rows = execute_read_query(control=3, checkdate=start_date.strftime("%Y-%m-%d"))
+    data_by_date = {datetime.strptime(row[5], "%Y-%m-%d %H:%M:%S").date(): row for row in rows}
+
+    # 데이터가 없는 날짜는 None으로 설정
+    data = []
+    for date in date_list:
+        if date.date() in data_by_date:
+            row = data_by_date[date.date()]
+            data.append({
+                "Week_temperature": row[1],
+                "Week_humidity": row[2],
+                "Week_ground1": row[3],
+                "Week_ground2": row[4],
+                "created_at": row[5]
+            })
+        else:
+            data.append({
+                "Week_temperature": None,
+                "Week_humidity": None,
+                "Week_ground1": None,
+                "Week_ground2": None,
+                "created_at": date.strftime("%Y-%m-%d %H:%M:%S")
+            })
+    return data
 
 def execute_read_query(control, checkdate):
     conn = get_db_connection()
@@ -124,7 +147,7 @@ async def get_sensor_data():
                  All_ground2=row[4], 
                  ceated_at=row[5]) for row in rows]
     if data:
-        return data
+        return JSONResponse(content=data)
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
@@ -139,7 +162,7 @@ async def get_latest_sensor_data():
                  Latest_ground2=row[4], 
                  ceated_at=row[5]) for row in rows]
     if data:
-        return data[0]
+        return JSONResponse(content=data[0])
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
@@ -148,7 +171,6 @@ async def get_latest_sensor_data():
 async def get_date_sensor_data(checkdate : str): # date?checkdate=yyyy-mm-dd
     logging.info("API /api/date 호출됨")  # 로그 기록
     rows = execute_read_query(control=2, checkdate = checkdate)
-    print(rows)
     data = [dict(Date_temperature=row[1], 
                  Date_humidity=row[2], 
                  Date_ground1=row[3], 
@@ -160,22 +182,18 @@ async def get_date_sensor_data(checkdate : str): # date?checkdate=yyyy-mm-dd
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
 #DB 내 선택한 날짜가 해당하는 주의 데이터 출력
-@app.get("/api/week")
-async def get_week_sensor_data(year : int, month : int, week : int): # week?year=yyyy&month=mm&week=n
+@app.post("/api/week")
+async def post_week_data(request_data: WeekDataRequest):
     '''
     year  : int  => 년도(yyyy)
     month : int  => 월(1 ~ 12)
     week  : int  => 주차(1 ~ 5)
     '''
-    logging.info("API /api/week 호출됨")  # 로그 기록
-    checkdate = get_week(year, month, week)
-    rows = execute_read_query(control=3, checkdate=checkdate)
-
-    data = [dict(Week_temperature=row[1], 
-                 Week_humidity=row[2], 
-                 Week_ground1=row[3], 
-                 Week_ground2=row[4], 
-                 ceated_at=row[5]) for row in rows]
+    logging.info("API /api/week 호출됨")
+    start_date = week_date(request_data.year, request_data.month, request_data.week)
+    if not start_date:
+        return JSONResponse(content={"message": "잘못된 날짜입니다."})
+    data = week_7days(start_date)
     if data:
         return JSONResponse(content=data)
     else:
