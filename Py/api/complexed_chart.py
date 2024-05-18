@@ -22,10 +22,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-class JMSUpdate(BaseModel):
-    LED : bool
-    SYSFAN : bool
-
 class DateDataRequest(BaseModel):
     date : str
 
@@ -39,7 +35,7 @@ class MonthDataRequest(BaseModel):
 
 
 def get_db_connection():
-    return sqlite3.connect('./JMSPlant_test.db', check_same_thread=False)
+    return sqlite3.connect('./JMSPlant.db', check_same_thread=False)
 
 def week_date(year: int, month: int, week_index: int = 0) -> datetime:
     first_day_of_month, days_in_month = calendar.monthrange(year, month)
@@ -130,19 +126,6 @@ def execute_read_query(control, checkdate):
         return 
     return rows
 
-def execute_update_query(LED, SYSFAN):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    updated_at = datetime.now()  # 현재 시간을 가져옵니다.
-    query = "UPDATE ArduinoControl SET LED = ?, SYSFAN = ?, updated_at = ? WHERE idx = 1"
-    cursor.execute(query, (LED, SYSFAN, updated_at))
-
-    conn.commit()
-    conn.close()
-    logging.info("데이터베이스 쿼리 실행")
-
-
 @app.get("/api")
 async def get_data():
     logging.info("API /api 호출됨")
@@ -221,13 +204,6 @@ async def post_month_data(request_data: MonthDataRequest):
         return JSONResponse(content=data)
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
-
-#센서 제어 데이터를 DB에 추가
-@app.post("/api/senddata")
-async def post_control_data(JMS: JMSUpdate):
-    logging.info("API /api/senddata 호출됨")
-    execute_update_query(JMS.LED, JMS.SYSFAN)
-    return JSONResponse(content={"message": "데이터베이스에 요청사항이 적용되었습니다."})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8008)

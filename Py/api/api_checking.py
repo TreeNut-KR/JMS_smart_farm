@@ -20,10 +20,5 @@ def test_read_main():
 
     response = client.post("/api/month", json={"date": "2024-05-16"})
     assert response.status_code == 200
-
-    # senddata POST 요청은 별도로 처리
-    response_api_senddata = client.post("/api/senddata", json={"LED": True, "SYSFAN": False})
-    assert response_api_senddata.status_code == 200
-
 if __name__ == "__main__":
     test_read_main()

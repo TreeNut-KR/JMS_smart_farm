@@ -37,29 +37,11 @@ class Database:
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             deleted_at TIMESTAMP DEFAULT NULL
         );
-
-        CREATE TABLE IF NOT EXISTS ArduinoControl (
-            idx INTEGER PRIMARY KEY AUTOINCREMENT,
-            led BOOL,
-            sysfan BOOL,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
         """
         try:
             self.cursor.executescript(query)
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
-
-    def check_and_insert_default_data(self):
-        '''
-        ArduinoControl 테이블에 데이터가 없는 경우 기본 데이터 삽입
-        '''
-        self.cursor.execute("SELECT COUNT(*) FROM ArduinoControl") # 데이터가 있는지 확인
-        count = self.cursor.fetchone()[0]
-        if count == 0:
-            query = "INSERT INTO ArduinoControl (led, sysfan, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)" # 데이터가 없으면 기본 데이터 삽입
-            self.cursor.execute(query, (True, False))
-            self.conn.commit()
 
     def smartFarm_insert_data(self, data) -> None:
         '''
@@ -79,7 +61,7 @@ class Ardu(device_data):
     def __init__(self) -> None:
         super().__init__()
         self.db = Database()
-        self.port = self.ar_get("USB")
+        self.port = self.ar_get("COM4")
         self.arduino = None
         self.data = {"isrun": False, "sysfan": False, "wpump": False, "led": False, "humidity": 0.0, "temperature": 0.0, "ground1": 0, "ground2": 0}
         self.last_print_time = time.time()
@@ -94,9 +76,9 @@ class Ardu(device_data):
     def parse_data(self, data_line):
         data_handlers = {
             "isrun": lambda x: bool(int(x)),
-            "sysfan": lambda x: bool(int(x)),
-            "wpump": lambda x: bool(int(x)),
-            "led": lambda x: bool(int(x)),
+            "d_sysfan": lambda x: bool(int(x)),
+            "d_wpump": lambda x: bool(int(x)),
+            "d_led": lambda x: bool(int(x)),
             "humidity": lambda x: float(x.split("%")[0]), # "%"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
             "temperature": lambda x: float(x.split("*C")[0]), # "*C"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
             "ground1": lambda x: round((int(x) / 1024) * 100, 1),
@@ -121,23 +103,13 @@ class Ardu(device_data):
                 pass
         if not data:
             return
-        
         self.parse_data(data)
 
-    def send_data(self):
-        self.db.cursor.execute("SELECT led, sysfan FROM ArduinoControl ORDER BY idx DESC LIMIT 1")
-        result = self.db.cursor.fetchone()
-        if result:
-            led, sysfan = result
-            message = f"{int(led)},{int(sysfan)}"
-            self.arduino.write(message.encode())
-
     def update(self) -> None:
-        if time.time() - self.last_print_time < 3:
+        if time.time() - self.last_print_time < 10:
             return
         # 딕셔너리의 값들을 출력
         print(" ".join(f"{k}: {v}" for k, v in self.data.items()))
-        self.send_data()
         # 딕셔너리를 이용하여 데이터베이스 삽입
         self.db.smartFarm_insert_data(self.data)
         self.last_print_time = time.time()
