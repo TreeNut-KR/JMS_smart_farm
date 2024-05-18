@@ -61,6 +61,41 @@ def execute_read_query(control, checkdate):
         datequery = "WHERE date(created_at) BETWEEN date('{}') AND date('{}', '+30 days') GROUP BY date(created_at) ORDER BY date(created_at) ASC"
         query += datequery.format(checkdate, checkdate)
 
+    elif control == 5:
+        print("선택한 날의 데이터를 선택해 1시간으로 나눠서 출력")
+        datequery = """
+        WITH RECURSIVE hours AS (
+            SELECT 0 AS hour
+            UNION ALL
+            SELECT hour + 1
+            FROM hours
+            WHERE hour < 23
+        ),
+        hour_data AS (
+            SELECT
+                *,
+                HOUR(created_at) AS hour,
+                ROW_NUMBER() OVER (PARTITION BY HOUR(created_at) ORDER BY created_at ASC) as row_num
+            FROM
+                smartFarm
+            WHERE
+                DATE(created_at) = DATE('{}')
+        )
+        SELECT
+            DATE_FORMAT(STR_TO_DATE('{}', '%Y-%m-%d') + INTERVAL hours.hour HOUR, '%Y-%m-%d %H:00:00') AS hour_slot,
+            hd.idx, hd.temperature, hd.humidity, hd.ground1, hd.ground2, hd.created_at
+        FROM
+            hours
+        LEFT JOIN
+            hour_data hd ON hours.hour = hd.hour AND hd.row_num = 1
+        ORDER BY
+            hour_slot;
+        """
+        query += datequery.format(checkdate, checkdate)
+        query += datequery.format(checkdate, checkdate)
+        query += datequery.format(checkdate, checkdate)
+    query += datequery.format(checkdate, checkdate)
+
     cursor.execute(query)
     rows = cursor.fetchall()
     conn.close()
@@ -132,6 +167,16 @@ async def get_month_sensor_data(checkdate : str):
     logging.info("API /api/month 호출됨")  # 로그 기록
     rows = execute_read_query(control=4, checkdate=checkdate)
     data = [dict(Month_temperature=row[1], Month_humidity=row[2], Month_ground1=row[3], Month_ground2=row[4]) for row in rows]
+    if data:
+        return JSONResponse(content=data)
+    else:
+        return JSONResponse(content={"message": "데이터가 없습니다."})
+# DB 내 선택한 날짜를 1시간 단위로 나눈 데이터 출력
+@app.get("/api/hourly")
+async def get_hourly_sensor_data(checkdate: str):
+    logging.info("API /api/hourly 호출됨")  # 로그 기록
+    rows = execute_read_query(control=5, checkdate=checkdate)
+    data = [dict(Hour_slot=row[0], Hourly_temperature=row[2], Hourly_humidity=row[3], Hourly_ground1=row[4], Hourly_ground2=row[5], Created_at=row[6]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
