@@ -20,9 +20,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 class JMSUpdate(BaseModel):
-    LED : bool
-    SYSFAN : bool
+    LED: bool
+    SYSFAN: bool
 
 def get_db_connection():
     return sqlite3.connect('./JMSPlant.db', check_same_thread=False)
@@ -30,12 +31,11 @@ def get_db_connection():
 def execute_read_query(control, checkdate):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     query = '''
         SELECT idx, temperature, humidity, ground1, ground2, created_at 
         FROM smartFarm 
     '''
-    i = 0
 
     if control == 0:
         print("전체 데이터 출력")
@@ -74,15 +74,15 @@ def execute_read_query(control, checkdate):
         hour_data AS (
             SELECT
                 *,
-                HOUR(created_at) AS hour,
-                ROW_NUMBER() OVER (PARTITION BY HOUR(created_at) ORDER BY created_at ASC) as row_num
+                strftime('%H', created_at) AS hour,
+                ROW_NUMBER() OVER (PARTITION BY strftime('%H', created_at) ORDER BY created_at ASC) as row_num
             FROM
                 smartFarm
             WHERE
                 DATE(created_at) = DATE('{}')
         )
         SELECT
-            DATE_FORMAT(STR_TO_DATE('{}', '%Y-%m-%d') + INTERVAL hours.hour HOUR, '%Y-%m-%d %H:00:00') AS hour_slot,
+            strftime('%Y-%m-%d %H:00:00', '{}') || printf('%02d:00:00', hours.hour) AS hour_slot,
             hd.idx, hd.temperature, hd.humidity, hd.ground1, hd.ground2, hd.created_at
         FROM
             hours
@@ -91,10 +91,7 @@ def execute_read_query(control, checkdate):
         ORDER BY
             hour_slot;
         """
-        query += datequery.format(checkdate, checkdate)
-        query += datequery.format(checkdate, checkdate)
-        query += datequery.format(checkdate, checkdate)
-    query += datequery.format(checkdate, checkdate)
+        query = datequery.format(checkdate, checkdate)
 
     cursor.execute(query)
     rows = cursor.fetchall()
@@ -114,44 +111,40 @@ def execute_update_query(LED, SYSFAN):
     conn.close()
     logging.info("데이터베이스 쿼리 실행")
 
-
 @app.get("/api")
 async def get_sensor_data():
     logging.info("API /api 호출됨")
     rows = execute_read_query(control=0, checkdate=None)
-    data = [dict(All_temperature=row[1], All_humidity=row[2], All_ground1=row[3], All_ground2=row[4], All_ceated_at=row[5]) for row in rows]
+    data = [dict(All_temperature=row[1], All_humidity=row[2], All_ground1=row[3], All_ground2=row[4], All_created_at=row[5]) for row in rows]
     if data:
         return data
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
-
 @app.get("/api/latest")
 async def get_latest_sensor_data():
     logging.info("API /api/latest 호출됨")
-    rows = execute_read_query(control=1, checkdate = None)
+    rows = execute_read_query(control=1, checkdate=None)
     data = [dict(Latest_temperature=row[1], Latest_humidity=row[2], Latest_ground1=row[3], Latest_ground2=row[4]) for row in rows]
     if data:
         return data[0]
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
-    
 
-#DB 내 선택한 날짜의 데이터 출력
+# DB 내 선택한 날짜의 데이터 출력
 @app.get("/api/date")
-async def get_date_sensor_data(checkdate : str):
+async def get_date_sensor_data(checkdate: str):
     logging.info("API /api/date 호출됨")  # 로그 기록
-    rows = execute_read_query(control=2, checkdate = checkdate)
+    rows = execute_read_query(control=2, checkdate=checkdate)
     data = [dict(Date_temperature=row[1], Date_humidity=row[2], Date_ground1=row[3], Date_ground2=row[4]) for row in rows]
     if data:
         return JSONResponse(content=data)
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
 
-
-#DB 내 선택한 날짜가 해당하는 주의 데이터 출력
+# DB 내 선택한 날짜가 해당하는 주의 데이터 출력
 @app.get("/api/week")
-async def get_week_sensor_data(checkdate : str):
+async def get_week_sensor_data(checkdate: str):
     logging.info("API /api/week 호출됨")  # 로그 기록
     rows = execute_read_query(control=3, checkdate=checkdate)
     data = [dict(Week_temperature=row[1], Week_humidity=row[2], Week_ground1=row[3], Week_ground2=row[4]) for row in rows]
@@ -159,11 +152,10 @@ async def get_week_sensor_data(checkdate : str):
         return JSONResponse(content=data)
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
-    
-    
-#DB 내 선택한 날짜가 해당하는 달의 데이터 출력
+
+# DB 내 선택한 날짜가 해당하는 달의 데이터 출력
 @app.get("/api/month")
-async def get_month_sensor_data(checkdate : str):
+async def get_month_sensor_data(checkdate: str):
     logging.info("API /api/month 호출됨")  # 로그 기록
     rows = execute_read_query(control=4, checkdate=checkdate)
     data = [dict(Month_temperature=row[1], Month_humidity=row[2], Month_ground1=row[3], Month_ground2=row[4]) for row in rows]
@@ -171,6 +163,7 @@ async def get_month_sensor_data(checkdate : str):
         return JSONResponse(content=data)
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
+
 # DB 내 선택한 날짜를 1시간 단위로 나눈 데이터 출력
 @app.get("/api/hourly")
 async def get_hourly_sensor_data(checkdate: str):
@@ -181,9 +174,8 @@ async def get_hourly_sensor_data(checkdate: str):
         return JSONResponse(content=data)
     else:
         return JSONResponse(content={"message": "데이터가 없습니다."})
-    
 
-#센서 제어 데이터를 DB에 추가
+# 센서 제어 데이터를 DB에 추가
 @app.post("/api/senddata")
 async def post_control_data(JMS: JMSUpdate):
     logging.info("API /api/senddata 호출됨")
