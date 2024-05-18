@@ -1,39 +1,22 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel  
 from fastapi.responses import FileResponse
 import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
 import time
-import uvicorn
+import os
+import sqlite3
 import threading
-import mysql.connector
 from device import device_data
-
-app = FastAPI()
-
-# 데이터를 저장할 구조
-class Data(BaseModel):
-    IsRun: bool
-    sysfan: bool
-    wpump: bool
-    led: bool
-    humidity: float
-    temperature: float
-    ground1: int
-    ground2: int
 
 class Database:
     def __init__(self) -> None:
-        # MySQL 데이터베이스 연결 설정
-        # 여기서 user, password, host, database를 자신의 환경에 맞게 수정해야 합니다.
-        self.conn = mysql.connector.connect(
-            user='root',
-            password='1234',
-            host='localhost',
-            database='jmedu'
-        )
+        self.directory = './' # 우분투 기준
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+        self.conn = sqlite3.connect(self.directory+'/JMSPlant.db', check_same_thread=False) # check_same_thread 파라미터를 False로 설정
         self.cursor = self.conn.cursor()
         self.create_table()
+        self.check_and_insert_default_data()
 
     def create_table(self):
         '''
@@ -53,24 +36,43 @@ class Database:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             deleted_at TIMESTAMP DEFAULT NULL
-        )
-        """
-        self.cursor.execute(query)
+        );
 
-    def insert_data(self, IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2) -> None:
+        CREATE TABLE IF NOT EXISTS ArduinoControl (
+            idx INTEGER PRIMARY KEY AUTOINCREMENT,
+            led BOOL,
+            sysfan BOOL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+        try:
+            self.cursor.executescript(query)
+        except sqlite3.Error as e:
+            print(f"SQLite error: {e}")
+
+    def check_and_insert_default_data(self):
+        '''
+        ArduinoControl 테이블에 데이터가 없는 경우 기본 데이터 삽입
+        '''
+        self.cursor.execute("SELECT COUNT(*) FROM ArduinoControl") # 데이터가 있는지 확인
+        count = self.cursor.fetchone()[0]
+        if count == 0:
+            query = "INSERT INTO ArduinoControl (led, sysfan, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)" # 데이터가 없으면 기본 데이터 삽입
+            self.cursor.execute(query, (True, False))
+            self.conn.commit()
+
+    def smartFarm_insert_data(self, data) -> None:
         '''
         DB에 데이터 삽입
         '''
+        
         current_time = datetime.now(timezone(timedelta(hours=9)))
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
         query = """
         INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """
-        #백분율로 반환
-        ground1_percentage = (ground1/ 1024) * 100
-        ground2_percentage = (ground2 / 1024) * 100
-        self.cursor.execute(query, (IsRun, sysfan, wpump, led, humidity, temperature, ground1_percentage, ground2_percentage,current_time_str, current_time_str))
+        self.cursor.execute(query, (1, data.get("sysfan"), data.get("wpump"),  data.get("led"),  data.get("humidity"),  data.get("temperature"), data.get("ground1"), data.get("ground2"),current_time_str, current_time_str))
         self.conn.commit()
 
 class Ardu(device_data):
@@ -79,159 +81,69 @@ class Ardu(device_data):
         self.db = Database()
         self.port = self.ar_get("USB")
         self.arduino = None
-        self.defl = "0"
-
-        self.IsRun = None
-        self.sysfan = None
-        self.wpump = None
-        self.led = None
-        self.humidity = None
-        self.temperature = None
-        self.ground1 = None
-        self.ground2 = None
-        self.a =1
+        self.data = {"isrun": False, "sysfan": False, "wpump": False, "led": False, "humidity": 0.0, "temperature": 0.0, "ground1": 0, "ground2": 0}
         self.last_print_time = time.time()
 
         try:
-            self.arduino = serial.Serial(self.port , 9600)
+            self.arduino = serial.Serial(self.port, 9600)
         except Exception as e:
             print(f"Port Error: {e}")
             exit(1)
         time.sleep(2)
 
-    def send_data(self) -> None:
-        '''
-        파이썬에서 아두이노의 센서(LED, SYSFAN)를 설정
-        '''
-        input_1, input_2 = map(str, input("\n1. LED, 2. FAN\n(on : 1, off : 0)\ninput : ").split())
-        sendDATA = input_1 + ',' + input_2
-        self.arduino.write(sendDATA.encode())
+    def parse_data(self, data_line):
+        data_handlers = {
+            "isrun": lambda x: bool(int(x)),
+            "sysfan": lambda x: bool(int(x)),
+            "wpump": lambda x: bool(int(x)),
+            "led": lambda x: bool(int(x)),
+            "humidity": lambda x: float(x.split("%")[0]), # "%"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
+            "temperature": lambda x: float(x.split("*C")[0]), # "*C"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
+            "ground1": lambda x: round((int(x) / 1024) * 100, 1),
+            "ground2": lambda x: round((int(x) / 1024) * 100, 1),
+        }
 
-    def read_serial_data(self) -> str:
-        '''
-        아두이노에서 보낸 데이터를 data에 임시저장
-        '''
-        if self.arduino.in_waiting > 0:
-            data = self.arduino.readline().decode().rstrip()
-            return data
+        key, value = data_line.split(":")
+        key = key.strip().lower() # 키를 소문자로 변환
+        value = value.strip()
+        if key in data_handlers: # 데이터 핸들링 함수가 있는 경우, 해당 함수로 값 처리
+            handled_value = data_handlers[key](value)
+            self.data[key] = handled_value
+        else:
+            pass
 
     def read_data(self) -> None:
-        '''
-        아두이노에서 보낸 데이터를 파이썬에 변수로 저장, 출력
-        '''
-        data = self.read_serial_data()
-        if data:
-            if data.startswith("IsRun : "):
-                if(int(data.split(":")[1].strip()) == 1):
-                    self.IsRun          = True
-                else:
-                    self.IsRun          = False
-            if data.startswith("SYSFAN : "):
-                if(int(data.split(":")[1].strip()) == 1):
-                    self.sysfan         = True
-                else:
-                    self.sysfan         = False
-            if data.startswith("WPUMP : "):
-                if(int(data.split(":")[1].strip()) == 1):
-                    self.wpump          = True
-                else:
-                    self.wpump          = False
-            if data.startswith("LED : "):
-                if(int(data.split(":")[1].strip()) == 1):
-                    self.led            = True
-                else:
-                    self.led            = False
-            if data.startswith("Humidity : "):
-                self.humidity       = float(data.split(":")[1].strip().split("%")[0])
-            if data.startswith("Temperature : "):
-                self.temperature    = float(data.split(":")[1].strip().split("*C")[0])
-            if data.startswith("Ground1 :"):
-                self.ground1        = int(data.split(":")[1].strip())
-            if data.startswith("Ground2 :"):
-                self.ground2        = int(data.split(":")[1].strip())
-            # Check if it has been more than 1 second since last print
-            if time.time() - self.last_print_time >= 1:#저장시간
-                #print(f"Received data - \nIsRun: {self.IsRun}, SYSFAN: {self.sysfan}, WPUMP: {self.wpump}, Humidity: {self.humidity}%, Temperature: {self.temperature}°C, Ground1: {self.ground1}, Ground2: {self.ground2}")
-                self.db.insert_data(self.IsRun, self.sysfan, self.wpump, self.led, self.humidity, self.temperature, self.ground1, self.ground2)
-                self.last_print_time = time.time()  # Update the last print time
-
-    def MultiProcessing_Read_Data(self) -> None:
-        '''
-        수신 데이터 멀티쓰레드
-        '''
-        while True:
-            self.read_data()
-
-    def MultiProcessing_Send_Data(self) -> None:
-        # '''
-        # 송신 데이터 멀티쓰레드
-        # '''
-        # while True:
-        #     try:
-        #         self.send_data()
-        #     except:
-        #         print("\nRetry\n")
-        uvicorn.run(app, host="0.0.0.0", port=8666)
-
-# 최신 데이터 조회 엔드포인트
-def get_database_connection():
-    try:
-        conn = mysql.connector.connect(
-            user='root',
-            password='1234',
-            host='localhost',
-            database='jmedu'
-        )
-        return conn
-    except mysql.connector.Error as e:
-        print(f"Database connection failed: {e}")
-        # 실제 운영 환경에서는 예외를 적절히 처리하는 방식을 고려해야 합니다.
-        # 여기서는 예시로 print만 하고 있습니다.
-        return None
-
-@app.get("/latest_data")
-async def get_latest_data():
-    conn = get_database_connection()
-    if conn is None:
-        raise HTTPException(status_code=500, detail="Database connection failed")
+        data = None 
+        if self.arduino.in_waiting > 0:
+            try:    
+                data = self.arduino.readline().decode().rstrip()
+            except:
+                pass
+        if not data:
+            return
         
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT * FROM smartFarm ORDER BY idx DESC LIMIT 1
-    ''')
-    row = cursor.fetchone()
-    conn.close()
-    if row:
-        data = {
-            'IsRun': row[1],
-            'sysfan': row[2],
-            'wpump': row[3],
-            'led': row[4],
-            'humidity': row[5],
-            'temperature': row[6],
-            'ground1': row[7],
-            'ground2': row[8],
-            'created_at': row[9],
-            'updated_at': row[10],
-            'deleted_at': row[11],
-        }
-        return data
-    else:
-        raise HTTPException(status_code=404, detail="Data not found")
+        self.parse_data(data)
 
-# 기본 경로('/')로 접속했을 때 index.html 반환
-@app.get("/")
-async def get_index_html():
-    return FileResponse("Py/Arduino/latest_data/index.html")
+    def send_data(self):
+        self.db.cursor.execute("SELECT led, sysfan FROM ArduinoControl ORDER BY idx DESC LIMIT 1")
+        result = self.db.cursor.fetchone()
+        if result:
+            led, sysfan = result
+            message = f"{int(led)},{int(sysfan)}"
+            self.arduino.write(message.encode())
 
-# 메인 함수
+    def update(self) -> None:
+        if time.time() - self.last_print_time < 3:
+            return
+        # 딕셔너리의 값들을 출력
+        print(" ".join(f"{k}: {v}" for k, v in self.data.items()))
+        self.send_data()
+        # 딕셔너리를 이용하여 데이터베이스 삽입
+        self.db.smartFarm_insert_data(self.data)
+        self.last_print_time = time.time()
+
 if __name__ == "__main__":
     Ar = Ardu()
-    Ar.read_data()    
-    read_process = threading.Thread(target = Ar.MultiProcessing_Read_Data)
-    read_process.start()
-    send_process =  threading.Thread(target = Ar.MultiProcessing_Send_Data)
-    send_process.start()
-
-    read_process.join()
-    send_process.join()
+    while True:
+        Ar.read_data()
+        Ar.update()
