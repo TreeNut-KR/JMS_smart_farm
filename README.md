@@ -85,7 +85,7 @@ docker compose -f "docker-compose.yml" up -d --build
  ✔ Container jms_smart_farm-python_app-1  Started
 ```
 
-### [🔗 Docker URL](localhost:8000/docs)
+[🔗 Docker URL](http://localhost:8000/docs)
 
 
 ---
