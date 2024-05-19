@@ -4,12 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
 from starlette.responses import RedirectResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from datetime import datetime, timedelta
 import calendar
 import sqlite3
 import uvicorn
 import logging
+import re
 
 def custom_openapi():
     if app.openapi_schema:
@@ -47,21 +48,30 @@ app.add_middleware(
 )
 
 class DataRequest(BaseModel):
-    date : str = Field(..., title="날짜",
-                       description="날짜를 나타내는 문자열입니다. 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다.")
-    
+    date: str = Field(..., title="날짜",
+                        description="날짜를 나타내는 문자열입니다. 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다.",)
+    @validator('date')
+    def check_date_range(cls, v):
+        start_date = datetime.strptime("1900-01-01", "%Y-%m-%d")
+        end_date = datetime.strptime("9999-12-31", "%Y-%m-%d")
+        input_date = datetime.strptime(v, "%Y-%m-%d")
+        
+        if not (start_date <= input_date <= end_date):
+            print(ValueError(f"날짜는 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다. 입력된 날짜: {v}"))
+            raise ValueError(f"날짜는 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다. 입력된 날짜: {v}")
+        return v
 class WeekDataRequest(BaseModel):
-    year: int = Field(..., gt=1899, lt=10000, title="년도",
-                      description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
-    month: int = Field(..., gt=0, lt=13, title="월",
-                       description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
-    week: int = Field(..., gt=0, lt=6, title="주차",
-                       description="주차을 나타내는 정수입니다. 1에서 5 사이의 값을 가져야 합니다.")
+    year: int = Field(...,title="년도", gt=1899, lt=10000,
+                        description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
+    month: int = Field(..., title="월", gt=0, lt=13,
+                        description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
+    week: int = Field(..., title="주차", gt=0, lt=6,
+                        description="주차을 나타내는 정수입니다. 1에서 5 사이의 값을 가져야 합니다.")
 class MonthDataRequest(BaseModel):
-    year: int = Field(..., gt=1899, lt=10000, title="년도",
-                      description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
-    month: int = Field(..., gt=0, lt=13, title="월",
-                       description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
+    year: int = Field(..., title="년도", gt=1899, lt=10000,
+                        description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
+    month: int = Field(..., title="월", gt=0, lt=13,
+                        description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
 
 
 def get_db_connection(DB: str = './JMSPlant.db'):
