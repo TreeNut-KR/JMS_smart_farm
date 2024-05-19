@@ -54,7 +54,7 @@ class WhiteTest:
         assert data_item == current_date_item
 
     async def test_white_week_days(self) -> None:
-        # 기존 코드와 같이 로직 구현. 비동기가 필요한 경우 httpx.AsyncClient 사용 예시 적용
+        # 수정 예정(기존 커밋를 참고하여 추가)
         pass
 
 @pytest.mark.anyio
