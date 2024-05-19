@@ -205,7 +205,7 @@ def execute_read_query(control, checkdate):
         return
     return rows
 
-@app.get("/")
+@app.get("/", summary="root 접속 시 docs 이동")
 def root():
     return RedirectResponse(url="/docs")
 
@@ -216,7 +216,7 @@ async def custom_redoc_html():
         title="My FastAPI App - ReDoc"
     )
 
-@app.get("/api")
+@app.get("/api", summary="전체 데이터 조회")
 async def get_data():
     '''
     DB의 데이터를 모두 반환합니다.
@@ -234,7 +234,7 @@ async def get_data():
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
-@app.get("/api/latest")
+@app.get("/api/latest", summary="최근 데이터 조회")
 async def get_latest_data():
     '''
     DB의 가장 최신 날짜의 데이터를 반환합니다.
@@ -252,13 +252,18 @@ async def get_latest_data():
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
     
-@app.post("/api/hourly")
+@app.post("/api/hourly", response_model=DataRequest, summary="시간 데이터 조회")
 async def post_hourly_sensor_data(request_data: DataRequest):
     '''
     yyyy-mm-dd형식의 날짜를 입력받아 해당 날짜의 시간 데이터를 반환합니다.
 
     Args:\n\n
     ㅤㅤdate (str): 날짜(yyyy-mm-dd)
+
+    예제 요청:
+    {
+        "date": 2024-05-25
+    }
     '''
     logging.info("API /api/hourly 호출됨")
     rows = execute_read_query(control=5, checkdate=request_data.date)
@@ -274,13 +279,18 @@ async def post_hourly_sensor_data(request_data: DataRequest):
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
-@app.post("/api/date")
+@app.post("/api/date", response_model=DataRequest, summary="일간 데이터 조회")
 async def post_date_data(request_data : DataRequest):
     '''
     yyyy-mm-dd형식의 날짜를 입력받아 해당 날짜의 일간 데이터를 반환합니다.
 
     Args:\n\n
     ㅤㅤdate (str): 날짜(yyyy-mm-dd)
+
+    예제 요청:
+    {
+        "date": 2024-05-25
+    }
     '''
     logging.info("API /api/date 호출됨")
     rows = execute_read_query(control=2, checkdate = request_data.date)
@@ -295,7 +305,7 @@ async def post_date_data(request_data : DataRequest):
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
-@app.post("/api/week")
+@app.post("/api/week", response_model=WeekDataRequest, summary="주간 데이터 조회")
 async def post_week_data(request_data: WeekDataRequest):
     '''
     년도, 월, 주차 정보를 입력받아 해당 날짜의 주간 데이터를 반환합니다.
@@ -327,7 +337,7 @@ async def post_week_data(request_data: WeekDataRequest):
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
     
-@app.post("/api/month")
+@app.post("/api/month", response_model=MonthDataRequest, summary="월간 데이터 조회")
 async def post_month_data(request_data: MonthDataRequest):
     '''
     년도, 월 정보를 입력받아 해당 날짜의 월간 데이터를 반환합니다.
