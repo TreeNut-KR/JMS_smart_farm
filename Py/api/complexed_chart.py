@@ -300,5 +300,5 @@ async def post_hourly_sensor_data(request_data: DataRequest):
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8008)
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8008)
