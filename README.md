@@ -7,7 +7,7 @@
 ## 🌳 프로젝트 파일 트리
 📦JMS_smart_farm   
  ┣ 📂.github   
- ┃ ┗ 📂workflows 
+ ┃ ┗ 📂workflows  
  ┃ ┃ ┗ 📜Python.yml   
  ┣ 📂Ar   
  ┃ ┗ 📂Arduino_UNO   
@@ -46,7 +46,8 @@
  ┣ 📜JMSPlant_test.db   
  ┣ 📜libraries_checking.py   
  ┣ 📜README.md   
- ┗ 📜requirements.txt   
+ ┣ 📜requirements.txt   
+ ┗ 📜setup_venv.bat  
 ---
 
 ## ⚡ 스마트팜 전력 배선 시스템
@@ -61,11 +62,19 @@
    
    ## ⬇️ 전선배선도면.eddx
    [![스마트팜 프로젝트](https://drive.google.com/uc?export=view&id=16YLoCCLto-hLLAYDK2dCux5KVayjZyTT)](https://drive.google.com/file/d/16HMf_8yOA0kCh1TgKVcjFiXK0HJdRApW/view?usp=sharing) 
-   
+
+---
+## 🛠️ setup_venv.bat
+- 경로 : `./setup_venv.bat`
+- venv 가상화 실행 명령어
+```bash
+& ".\setup_venv.bat"
+```
 ---
 ## 🔐 .env
 - 경로 : `./Py/youtube_live/.env`
-```
+- .env 내용
+```.env
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
 GOOGLE_PROJECT_ID=your_project_id
