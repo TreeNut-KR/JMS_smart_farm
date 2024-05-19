@@ -15,6 +15,7 @@
  ┃ ┃ ┃ ┗ 📜JMS_Arduino.ino   
  ┣ 📂Py   
  ┃ ┣ 📂api   
+ ┃ ┃ ┣ 📜Dockerfile   
  ┃ ┃ ┣ 📜api_checking.py   
  ┃ ┃ ┣ 📜api_test.html   
  ┃ ┃ ┗ 📜complexed_chart.py   
@@ -42,12 +43,13 @@
  ┃ ┃ ┣ 📜.env   
  ┃ ┃ ┗ 📜youtube_live.py   
  ┣ 📜.gitignore   
+ ┣ 📜docker-compose.yml   
  ┣ 📜JMSPlant.db   
  ┣ 📜JMSPlant_test.db   
  ┣ 📜libraries_checking.py   
  ┣ 📜README.md   
  ┣ 📜requirements.txt   
- ┗ 📜setup_venv.bat  
+ ┗ 📜setup_venv.bat 
 ---
 
 ## ⚡ 스마트팜 전력 배선 시스템
