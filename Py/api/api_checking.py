@@ -50,12 +50,12 @@ class white_test():
         print(
             f"{data_bool}\n"
             f"data_item         : {data_item}\n"
-            f"current_date_item : {current_date_item}"    
+            f"current_date_item : {current_date_item}"
             )
         assert data_item == current_date_item
 
     def test_white_week_days(self) -> None:
-        current_date_item = None  
+        current_date_item = None
         days = 32 # 경계 데이터 테스트
         start_date = datetime.strptime("2024-05-01", "%Y-%m-%d")
         data_item = self.complexed_chart.week_days(start_date,
@@ -65,13 +65,13 @@ class white_test():
         print(
             f"{data_bool}\n"
             f"data_item         : {data_item}\n"
-            f"current_date_item : {current_date_item}"    
+            f"current_date_item : {current_date_item}"
             )
         assert data_item == current_date_item
 
         current_date=[]
         days = 31
-        start_date = datetime.strptime("2024-06-30", "%Y-%m-%d") # 경계 날짜 테스트 
+        start_date = datetime.strptime("2024-06-30", "%Y-%m-%d") # 경계 날짜 테스트
         for i in range(days):
             current_date.append(str(start_date + timedelta(days=i)))
         data_items = self.complexed_chart.week_days(start_date,
@@ -83,7 +83,7 @@ class white_test():
             print(
                 f"{index, data_bool}\n"
                 f"data_item['created_at'] : {data_item['created_at']}\n"
-                f"current_date_item       : {current_date_item}"    
+                f"current_date_item       : {current_date_item}"
                 )
             assert data_item['created_at'] == current_date_item
 

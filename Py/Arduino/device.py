@@ -14,7 +14,6 @@ class device_data:
                 return port_get
         return None
     
-    
     # def cam_get(self, mod: str) -> Union[int, None]:
     #     '''
     #     카메라 USB 데이터 (윈도우용)

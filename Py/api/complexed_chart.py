@@ -3,7 +3,8 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
-from pydantic import BaseModel
+from starlette.responses import RedirectResponse
+from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 import calendar
 import sqlite3
@@ -21,7 +22,7 @@ def custom_openapi():
                     "최신 데이터ㅤㅤ=>ㅤget('/api/latest')\n\n"+
                     "시간별 데이터ㅤ=>ㅤpost('/api/hourly')\n\n"+
                     "일별 데이터ㅤㅤ=>ㅤpost('/api/date')\n\n"+
-                    "주간별 데이터ㅤ=>ㅤpost('/api/week')\n\n"+ 
+                    "주간별 데이터ㅤ=>ㅤpost('/api/week')\n\n"+
                     "월별 데이터ㅤㅤ=>ㅤpost('/api/month')",
         routes=app.routes,
     )
@@ -46,16 +47,22 @@ app.add_middleware(
 )
 
 class DataRequest(BaseModel):
-    date : str
+    date : str = Field(..., title="날짜",
+                       description="날짜를 나타내는 문자열입니다. 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다.")
     
 class WeekDataRequest(BaseModel):
-    year: int
-    month: int
-    week: int
-
+    year: int = Field(..., gt=1899, lt=10000, title="년도",
+                      description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
+    month: int = Field(..., gt=0, lt=13, title="월",
+                       description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
+    week: int = Field(..., gt=0, lt=6, title="주차",
+                       description="주차을 나타내는 정수입니다. 1에서 5 사이의 값을 가져야 합니다.")
 class MonthDataRequest(BaseModel):
-    year: int
-    month: int
+    year: int = Field(..., gt=1899, lt=10000, title="년도",
+                      description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
+    month: int = Field(..., gt=0, lt=13, title="월",
+                       description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
+
 
 def get_db_connection(DB: str = './JMSPlant.db'):
     return sqlite3.connect(DB, check_same_thread=False)
@@ -117,8 +124,8 @@ def execute_read_query(control, checkdate):
     cursor = conn.cursor()
     
     query = '''
-        SELECT idx, temperature, humidity, ground1, ground2, created_at 
-        FROM smartFarm 
+        SELECT idx, temperature, humidity, ground1, ground2, created_at
+        FROM smartFarm
     '''
     if control == 0: # 전체 데이터 출력
         query += 'WHERE date(created_at) <= date()'
@@ -131,19 +138,19 @@ def execute_read_query(control, checkdate):
         query += datequery.format(checkdate)
 
     elif control == 3: # 선택한 주의 데이터출력
-        datequery = ''' 
-            WHERE date(created_at) BETWEEN date('{}') 
-            AND date('{}', '+6 days') 
-            GROUP BY date(created_at) 
+        datequery = '''
+            WHERE date(created_at) BETWEEN date('{}')
+            AND date('{}', '+6 days')
+            GROUP BY date(created_at)
             ORDER BY date(created_at) ASC
         '''# 선택한 날짜가 속한 주의 시작일(월요일)과 종료일(일요일)을 계산합니다.
         query += datequery.format(checkdate, checkdate)
 
     elif control == 4: # 선택한 달의 데이터출력
         datequery = '''
-            WHERE date(created_at) BETWEEN date('{}') 
-            AND date('{}', '+30 days') 
-            GROUP BY date(created_at) 
+            WHERE date(created_at) BETWEEN date('{}')
+            AND date('{}', '+30 days')
+            GROUP BY date(created_at)
             ORDER BY date(created_at) ASC
         '''
         query += datequery.format(checkdate, checkdate)
@@ -188,6 +195,10 @@ def execute_read_query(control, checkdate):
         return
     return rows
 
+@app.get("/")
+def root():
+    return RedirectResponse(url="/docs")
+
 @app.get("/docs", include_in_schema=False)
 async def custom_redoc_html():
     return get_redoc_html(
@@ -197,13 +208,16 @@ async def custom_redoc_html():
 
 @app.get("/api")
 async def get_data():
+    '''
+    DB의 데이터를 모두 반환합니다.
+    '''
     logging.info("API /api 호출됨")
     rows = execute_read_query(control=0, checkdate=None)
     if rows:
-        data = [dict(All_temperature=row[1], 
-                    All_humidity=row[2], 
-                    All_ground1=row[3], 
-                    All_ground2=row[4], 
+        data = [dict(All_temperature=row[1],
+                    All_humidity=row[2],
+                    All_ground1=row[3],
+                    All_ground2=row[4],
                     Created_at=row[5]) for row in rows]
     
         return JSONResponse(content=data)
@@ -212,45 +226,81 @@ async def get_data():
 
 @app.get("/api/latest")
 async def get_latest_data():
+    '''
+    DB의 가장 최신 날짜의 데이터를 반환합니다.
+    '''
     logging.info("API /api/latest 호출됨")
     rows = execute_read_query(control=1, checkdate = None)
     if rows:
-        data = [dict(Latest_temperature=row[1], 
-                    Latest_humidity=row[2], 
-                    Latest_ground1=row[3], 
-                    Latest_ground2=row[4], 
+        data = [dict(Latest_temperature=row[1],
+                    Latest_humidity=row[2],
+                    Latest_ground1=row[3],
+                    Latest_ground2=row[4],
                     Created_at=row[5]) for row in rows]
     
         return JSONResponse(content=data[0])
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+    
+@app.post("/api/hourly")
+async def post_hourly_sensor_data(request_data: DataRequest):
+    '''
+    yyyy-mm-dd형식의 날짜를 입력받아 해당 날짜의 시간 데이터를 반환합니다.
 
-#DB 내 선택한 날짜의 데이터 출력
+    Args:\n\n
+    ㅤㅤdate (str): 날짜(yyyy-mm-dd)
+    '''
+    logging.info("API /api/hourly 호출됨")
+    rows = execute_read_query(control=5, checkdate=request_data.date)
+    if rows:
+        data = [dict(Hour_slot=row[0],
+                    Hourly_temperature=row[2],
+                    Hourly_humidity=row[3],
+                    Hourly_ground1=row[4],
+                    Hourly_ground2=row[5],
+                    Created_at=row[6]) for row in rows]
+    
+        return JSONResponse(content=data)
+    else:
+        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+
 @app.post("/api/date")
 async def post_date_data(request_data : DataRequest):
+    '''
+    yyyy-mm-dd형식의 날짜를 입력받아 해당 날짜의 일간 데이터를 반환합니다.
+
+    Args:\n\n
+    ㅤㅤdate (str): 날짜(yyyy-mm-dd)
+    '''
     logging.info("API /api/date 호출됨")
     rows = execute_read_query(control=2, checkdate = request_data.date)
     if rows:
-        data = [dict(Date_temperature=row[1], 
-                    Date_humidity=row[2], 
-                    Date_ground1=row[3], 
-                    Date_ground2=row[4], 
+        data = [dict(Date_temperature=row[1],
+                    Date_humidity=row[2],
+                    Date_ground1=row[3],
+                    Date_ground2=row[4],
                     Created_at=row[5]) for row in rows]
     
         return JSONResponse(content=data)
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
-#DB 내 선택한 날짜가 해당하는 주의 데이터 출력
 @app.post("/api/week")
 async def post_week_data(request_data: WeekDataRequest):
     '''
-    년도, 월, 주차 정보를 입력받아 해당 주의 데이터를 반환합니다.
+    년도, 월, 주차 정보를 입력받아 해당 날짜의 주간 데이터를 반환합니다.
 
     Args:\n\n
     ㅤㅤyear (int): 년도(yyyy)\n\n
     ㅤㅤmonth (int): 월(1 ~ 12)\n\n
     ㅤㅤweek (int): 주차(1 ~ 5)
+
+    예제 요청:
+    {
+        "year": 2024,
+        "month": 5
+        "week": 1
+    }
     '''
     logging.info("API /api/week 호출됨")
     start_date = week_date(request_data.year, request_data.month, request_data.week)
@@ -262,43 +312,38 @@ async def post_week_data(request_data: WeekDataRequest):
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IndexError:
-        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.") 
+        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
     except Exception:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
     
-#DB 내 선택한 날짜가 해당하는 달의 데이터 출력
 @app.post("/api/month")
 async def post_month_data(request_data: MonthDataRequest):
+    '''
+    년도, 월 정보를 입력받아 해당 날짜의 월간 데이터를 반환합니다.
+
+    Args:\n\n
+    ㅤㅤyear (int): 년도(yyyy)\n\n
+    ㅤㅤmonth (int): 월(1 ~ 12)
+
+    예제 요청:
+    {
+        "year": 2024,
+        "month": 5
+    }
+    '''
     logging.info("API /api/month 호출됨")
     date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
     start_date = datetime.strptime(date_str, "%Y-%m-%d")
     try:
-        data = week_days(start_date, days=30, control=4) 
+        data = week_days(start_date, days=30, control=4)
         return JSONResponse(content=data)
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IndexError:
-        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.") 
+        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
     except Exception:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
-# DB 내 선택한 날짜를 1시간 단위로 나눈 데이터 출력
-@app.post("/api/hourly")
-async def post_hourly_sensor_data(request_data: DataRequest):
-    logging.info("API /api/hourly 호출됨")
-    rows = execute_read_query(control=5, checkdate=request_data.date)
-    if rows:
-        data = [dict(Hour_slot=row[0], 
-                    Hourly_temperature=row[2], 
-                    Hourly_humidity=row[3], 
-                    Hourly_ground1=row[4], 
-                    Hourly_ground2=row[5], 
-                    Created_at=row[6]) for row in rows]
-    
-        return JSONResponse(content=data)
-    else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
-
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8008)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -2,7 +2,7 @@ import sqlite3
 from sqlite3 import Error
 
 def create_connection():
-    conn = None;
+    conn = None
     try:
         conn = sqlite3.connect('./JMSPlant_test.db') # 상대 경로에 데이터베이스 연결 생성
         return conn
@@ -11,7 +11,7 @@ def create_connection():
 
     return conn
 
-def execute_query(conn, query): 
+def execute_query(conn, query):
     try:
         cursor = conn.cursor()
         cursor.executescript(query)
