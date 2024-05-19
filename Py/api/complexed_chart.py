@@ -1,18 +1,40 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.openapi.docs import get_redoc_html
+from fastapi.openapi.utils import get_openapi
+from pydantic import BaseModel
 from datetime import datetime, timedelta
 import calendar
-import math
 import sqlite3
 import uvicorn
 import logging
 
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Smart Farm FastAPI",
+        version="",
+        description="스마트팜 센서 데이터 전송 API\n\n"+
+                    "전체 데이터ㅤㅤ=>ㅤget('/api')\n\n"+
+                    "최신 데이터ㅤㅤ=>ㅤget('/api/latest')\n\n"+
+                    "시간별 데이터ㅤ=>ㅤpost('/api/hourly')\n\n"+
+                    "일별 데이터ㅤㅤ=>ㅤpost('/api/date')\n\n"+
+                    "주간별 데이터ㅤ=>ㅤpost('/api/week')\n\n"+ 
+                    "월별 데이터ㅤㅤ=>ㅤpost('/api/month')",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
 # 로깅 설정
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 app = FastAPI()
+app.openapi = custom_openapi
 
 # CORS 미들웨어 추가
 app.add_middleware(
@@ -23,19 +45,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class DataRequest(BaseModel):
+    date : str
+    
 class WeekDataRequest(BaseModel):
     year: int
     month: int
     week: int
 
-class DataRequest(BaseModel):
-    date : str
-
+class MonthDataRequest(BaseModel):
+    year: int
+    month: int
 
 def get_db_connection(DB: str = './JMSPlant.db'):
     return sqlite3.connect(DB, check_same_thread=False)
 
 def week_date(year: int, month: int, week_index: int = 0) -> datetime:
+    if year < 1900 or year > 9999:
+        return None
+    if month < 1 or month > 12:
+        return None
+    
     first_day_of_month, days_in_month = calendar.monthrange(year, month)
 
     if first_day_of_month != 0:
@@ -49,11 +79,15 @@ def week_date(year: int, month: int, week_index: int = 0) -> datetime:
         return None
     return datetime.strptime(check_date, "%Y-%m-%d")
 
-def week_7days(start_date: datetime) -> list:
-    # 주차의 시작일부터 7일간의 날짜 리스트 생성
-    date_list = [start_date + timedelta(days=i) for i in range(7)]
+def week_days(start_date: datetime, days: int, control: int) -> list:
+    if days < 1 or days > 31:
+        return None
+    if control < 1 or control > 5:
+        return None
+    
+    date_list = [start_date + timedelta(days=i) for i in range(days)]
 
-    rows = execute_read_query(control=3, checkdate=start_date.strftime("%Y-%m-%d"))
+    rows = execute_read_query(control=control, checkdate=start_date.strftime("%Y-%m-%d"))
     data_by_date = {datetime.strptime(row[5], "%Y-%m-%d %H:%M:%S").date(): row for row in rows}
 
     # 데이터가 없는 날짜는 None으로 설정
@@ -154,6 +188,13 @@ def execute_read_query(control, checkdate):
         return
     return rows
 
+@app.get("/docs", include_in_schema=False)
+async def custom_redoc_html():
+    return get_redoc_html(
+        openapi_url="/openapi.json",
+        title="My FastAPI App - ReDoc"
+    )
+
 @app.get("/api")
 async def get_data():
     logging.info("API /api 호출됨")
@@ -187,7 +228,7 @@ async def get_latest_data():
 #DB 내 선택한 날짜의 데이터 출력
 @app.post("/api/date")
 async def post_date_data(request_data : DataRequest):
-    logging.info("API /api/date 호출됨")  # 로그 기록
+    logging.info("API /api/date 호출됨")
     rows = execute_read_query(control=2, checkdate = request_data.date)
     if rows:
         data = [dict(Date_temperature=row[1], 
@@ -204,16 +245,19 @@ async def post_date_data(request_data : DataRequest):
 @app.post("/api/week")
 async def post_week_data(request_data: WeekDataRequest):
     '''
-    year  : int  => 년도(yyyy)
-    month : int  => 월(1 ~ 12)
-    week  : int  => 주차(1 ~ 5)
+    년도, 월, 주차 정보를 입력받아 해당 주의 데이터를 반환합니다.
+
+    Args:\n\n
+    ㅤㅤyear (int): 년도(yyyy)\n\n
+    ㅤㅤmonth (int): 월(1 ~ 12)\n\n
+    ㅤㅤweek (int): 주차(1 ~ 5)
     '''
     logging.info("API /api/week 호출됨")
     start_date = week_date(request_data.year, request_data.month, request_data.week)
     if not start_date:
         raise HTTPException(status_code=400, detail="잘못된 날짜입니다.")  # 잘못된 요청에 대한 응답 코드 수정
     try:
-        data = week_7days(start_date)
+        data = week_days(start_date, days=7, control=3)
         return JSONResponse(content=data)
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
@@ -225,24 +269,24 @@ async def post_week_data(request_data: WeekDataRequest):
     
 #DB 내 선택한 날짜가 해당하는 달의 데이터 출력
 @app.post("/api/month")
-async def post_month_data(request_data: DataRequest):
-    logging.info("API /api/month 호출됨")  # 로그 기록
-    rows = execute_read_query(control=4, checkdate=request_data.date)
-    if rows:
-        data = [dict(Month_temperature=row[1], 
-                    Month_humidity=row[2], 
-                    Month_ground1=row[3], 
-                    Month_ground2=row[4], 
-                    Created_at=row[5]) for row in rows]
-        
+async def post_month_data(request_data: MonthDataRequest):
+    logging.info("API /api/month 호출됨")
+    date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
+    start_date = datetime.strptime(date_str, "%Y-%m-%d")
+    try:
+        data = week_days(start_date, days=30, control=4) 
         return JSONResponse(content=data)
-    else:
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except IndexError:
+        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.") 
+    except Exception:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
 # DB 내 선택한 날짜를 1시간 단위로 나눈 데이터 출력
 @app.post("/api/hourly")
 async def post_hourly_sensor_data(request_data: DataRequest):
-    logging.info("API /api/hourly 호출됨")  # 로그 기록
+    logging.info("API /api/hourly 호출됨")
     rows = execute_read_query(control=5, checkdate=request_data.date)
     if rows:
         data = [dict(Hour_slot=row[0], 
