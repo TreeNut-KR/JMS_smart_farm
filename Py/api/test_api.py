@@ -1,5 +1,7 @@
 import pytest
+import asyncio
 from httpx import AsyncClient
+from datetime import datetime, timedelta
 import sys
 sys.path.append('.\\JMS_smart_farm\\Py\\api')
 import complexed_chart
@@ -39,10 +41,10 @@ class WhiteTest:
         self.complexed_chart.get_db_connection("JMSPlant_test.db")
 
     async def __call__(self) -> None:
-        await self.test_white_week_date()
-        await self.test_white_week_days()
+        self.test_white_week_date()
+        self.test_white_week_days()
     
-    async def test_white_week_date(self) -> None:
+    def test_white_week_date(self) -> None:
         current_date_item = None
         data_item = self.complexed_chart.week_date(year=2024, month=3, week_index=5)
         data_bool = data_item == current_date_item
@@ -53,15 +55,42 @@ class WhiteTest:
         )
         assert data_item == current_date_item
 
-    async def test_white_week_days(self) -> None:
-        # 수정 예정(기존 커밋를 참고하여 추가)
-        pass
+    def test_white_week_days(self) -> None:
+        current_date_item = None
+        days = 32 # 경계 데이터 테스트
+        start_date = datetime.strptime("2024-05-01", "%Y-%m-%d")
+        data_item = self.complexed_chart.week_days(start_date, days=days, control=3)
+        data_bool = data_item == current_date_item
+        print(
+            f"{data_bool}\n"
+            f"data_item         : {data_item}\n"
+            f"current_date_item : {current_date_item}"
+            )
+        assert data_item == current_date_item
+
+        current_date=[]
+        days = 31
+        start_date = datetime.strptime("2024-06-30", "%Y-%m-%d") # 경계 날짜 테스트
+        for i in range(days):
+            current_date.append(str(start_date + timedelta(days=i)))
+        data_items = self.complexed_chart.week_days(start_date,
+                                                    days=days,
+                                                    control=3)
+        print("")
+        for index, (data_item, current_date_item) in enumerate(zip(data_items, current_date)):
+            data_bool = data_item['created_at'] == current_date_item
+            print(
+                f"{index, data_bool}\n"
+                f"data_item['created_at'] : {data_item['created_at']}\n"
+                f"current_date_item       : {current_date_item}"
+                )
+            assert data_item['created_at'] == current_date_item
 
 @pytest.mark.anyio
 async def main():
-    white_test_instance = WhiteTest()
-    await white_test_instance()
     await test_black_box()
 
 if __name__ == "__main__":
+    white_test_instance = WhiteTest()
+    asyncio.run(white_test_instance())  # 비동기 호출
     pytest.main()
