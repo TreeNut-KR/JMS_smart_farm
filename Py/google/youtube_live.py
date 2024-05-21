@@ -17,8 +17,8 @@ def get_client_secrets():
             "token_uri": os.getenv("GOOGLE_TOKEN_URI"),
             "auth_provider_x509_cert_url": os.getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL"),
             "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-            "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URIS")],
-            "javascript_origins": [os.getenv("GOOGLE_JAVASCRIPT_ORIGINS")]
+            "redirect_uris": os.getenv("GOOGLE_REDIRECT_URIS"),
+            "javascript_origins": os.getenv("GOOGLE_JAVASCRIPT_ORIGINS")
         }
     }
     return client_secrets
