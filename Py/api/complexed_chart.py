@@ -365,5 +365,6 @@ async def post_month_data(request_data: MonthDataRequest):
     except Exception:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

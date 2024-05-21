@@ -9,12 +9,13 @@
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-#define GROUND1 A2    //토양센서1
-#define GROUND2 A3    //토양센서2
-#define DHTPIN  4     //온습도센서
-#define LED     8     //LED
-#define W_PUMP  12    //펌프
-#define SYS_FAN 13    //sys팬
+#define GROUND1   A2    //토양센서1
+#define GROUND2   A3    //토양센서2
+#define DHTPIN    4     //온습도센서
+#define LED       8     //LED
+#define H2O2_PUMP 11    //과산화수소 펌프
+#define W_PUMP    12    //펌프
+#define SYS_FAN   13    //sys팬
 
 #define DHTTYPE DHT21
 
@@ -28,6 +29,7 @@ void setup() {
   pinMode(SYS_FAN, OUTPUT);
   pinMode(W_PUMP, OUTPUT);
   pinMode(LED, OUTPUT);
+  pinMode(H2O2_PUMP, OUTPUT);
   digitalWrite(LED, HIGH);
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
     Serial.println(F("SSD1306 allocation failed"));
@@ -45,6 +47,7 @@ void loop() {
     bool  D_SYSFAN;                             //시스탬펜 on/off
     bool  D_WPUMP;                              //워터펌프 on/off
     bool  D_LED;                                //LED on/off
+    bool  D_H2O2PUMP;                           //H2O2 펌프 on/off
     float Humidity    = dht.readHumidity();     //습도 %
     float Temperature = dht.readTemperature();  //온도 소숫점 2번째 자리까지
     int   Ground1     = analogRead(A2);         //토양1 수분
@@ -56,9 +59,15 @@ void loop() {
       {digitalWrite(SYS_FAN, LOW);  D_SYSFAN = false;}
 
     if(Ground1 >= 380 || Ground2 >= 380)      //WPUMP 작동여부
-      {digitalWrite(W_PUMP, HIGH);  D_WPUMP = true;}
+      {
+        digitalWrite(W_PUMP, HIGH);  D_WPUMP = true;
+        digitalWrite(D_H2O2PUMP, HIGH); D_H2O2PUMP = true;
+      }
     else
-      {digitalWrite(W_PUMP, LOW);   D_WPUMP = false;}
+      {
+        digitalWrite(W_PUMP, LOW);   D_WPUMP = false;
+        digitalWrite(D_H2O2PUMP, LOW); D_H2O2PUMP = false;
+      }
     
     SendDataToOLEDDisplay(Humidity, Temperature);
     //OLED에 데이터 보내기

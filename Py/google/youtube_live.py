@@ -17,8 +17,8 @@ def get_client_secrets():
             "token_uri": os.getenv("GOOGLE_TOKEN_URI"),
             "auth_provider_x509_cert_url": os.getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL"),
             "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-            "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URIS")],
-            "javascript_origins": [os.getenv("GOOGLE_JAVASCRIPT_ORIGINS")]
+            "redirect_uris": os.getenv("GOOGLE_REDIRECT_URIS"),
+            "javascript_origins":os.getenv("GOOGLE_JAVASCRIPT_ORIGINS")
         }
     }
     return client_secrets
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         create_live_event(youtube,
                           "테스트 라이브 이벤트",
                           "이것은 테스트 라이브 이벤트입니다.",
-                          "2024-05-20T00:00:00.000Z",
-                          "2024-05-20T01:00:00.000Z")
+                          "2024-05-22T00:00:00.000Z",
+                          "2024-05-22T01:00:00.000Z")
     except HttpError as e:
         print("HTTP 에러 %d 발생:/n%s" % (e.resp.status, e.content))
