@@ -141,7 +141,11 @@ def execute_read_query(control, checkdate):
         query += 'WHERE date(created_at) <= date()'
 
     elif control == 1: # 최신 데이터 출력
-        query += 'ORDER BY created_at DESC LIMIT 1'
+        query = '''
+        SELECT idx, sysfan, wpump, led, temperature, humidity, ground1, ground2, created_at
+        FROM smartFarm
+        ORDER BY created_at DESC LIMIT 1
+        '''
 
     elif control == 2: # 선택한 날짜의 데이터출력
         datequery = "WHERE date(created_at) = date('{}')"
@@ -242,11 +246,14 @@ async def get_latest_data():
     logging.info("API /api/latest 호출됨")
     rows = execute_read_query(control=1, checkdate = None)
     if rows:
-        data = [dict(Latest_temperature=row[1],
-                    Latest_humidity=row[2],
-                    Latest_ground1=row[3],
-                    Latest_ground2=row[4],
-                    Created_at=row[5]) for row in rows]
+        data = [dict(Latest_temperature=row[4],
+                    Latest_humidity=row[5],
+                    Latest_ground1=row[6],
+                    Latest_ground2=row[7],
+                    Latest_sysfan=row[1],
+                    Latest_wpump=row[2],
+                    Latest_led=row[3],
+                    Created_at=row[8]) for row in rows]
     
         return JSONResponse(content=data[0])
     else:
