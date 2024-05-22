@@ -73,10 +73,6 @@ class MonthDataRequest(BaseModel):
     month: int = Field(..., title="월", gt=0, lt=13,
                         description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
 
-
-def get_db_connection(DB: str = './JMSPlant.db'):
-    return sqlite3.connect(DB, check_same_thread=False)
-
 def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     if year < 1900 or year > 9999:
         return None
@@ -129,8 +125,8 @@ def datetime_days(start_date: datetime, days: int, control: int) -> list:
             })
     return data
 
-def execute_read_query(control, checkdate):
-    conn = get_db_connection()
+def execute_read_query(control, checkdate, DB: str = './JMSPlant.db'):
+    conn = sqlite3.connect(DB, check_same_thread=False)
     cursor = conn.cursor()
     
     query = '''
@@ -355,8 +351,8 @@ async def post_month_data(request_data: MonthDataRequest):
     }
     '''
     logging.info("API /api/month 호출됨")
-    date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
-    start_date, days_in_month = datetime.strptime(date_str, "%Y-%m-%d")
+    # date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
+    start_date, days_in_month = datetime_date(request_data.year, request_data.month, index=1)
     try:
         data = datetime_days(start_date, days=days_in_month, control=4)
         return JSONResponse(content=data)

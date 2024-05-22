@@ -18,14 +18,13 @@ async def test_black_box():
     
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # GET 요청 테스트
-        get_endpoints = ["/api", "/api/latest"]
+        get_endpoints = ["/api", "/api/latest", "/api/idx100"]
         for endpoint in get_endpoints:
             response = await ac.get(endpoint)
             assert response.status_code == 200
 
         # POST 요청 테스트
         post_endpoints = {
-            "/api/date": {"date": "2024-05-16"},
             "/api/hourly": {"date": "2024-05-16"},
             "/api/week": {"year": 2024, "month": 12, "week": 2},
             "/api/month": {"year": 2024, "month": 12},
@@ -38,7 +37,6 @@ async def test_black_box():
 class WhiteTest:
     def __init__(self) -> None:
         self.complexed_chart = complexed_chart
-        self.complexed_chart.get_db_connection("JMSPlant_test.db")
 
     async def __call__(self) -> None:
         self.test_white_week_date()
@@ -46,7 +44,7 @@ class WhiteTest:
     
     def test_white_week_date(self) -> None:
         current_date_item = None
-        data_item = self.complexed_chart.week_date(year=2024, month=3, week_index=5)
+        data_item, _ = self.complexed_chart.datetime_date(year=2024, month=3, index=5)
         data_bool = data_item == current_date_item
         print(
             f"{data_bool}\n"
@@ -59,7 +57,7 @@ class WhiteTest:
         current_date_item = None
         days = 32 # 경계 데이터 테스트
         start_date = datetime.strptime("2024-05-01", "%Y-%m-%d")
-        data_item = self.complexed_chart.week_days(start_date, days=days, control=3)
+        data_item = self.complexed_chart.datetime_days(start_date, days=days, control=3)
         data_bool = data_item == current_date_item
         print(
             f"{data_bool}\n"
@@ -73,9 +71,7 @@ class WhiteTest:
         start_date = datetime.strptime("2024-06-30", "%Y-%m-%d") # 경계 날짜 테스트
         for i in range(days):
             current_date.append(str(start_date + timedelta(days=i)))
-        data_items = self.complexed_chart.week_days(start_date,
-                                                    days=days,
-                                                    control=3)
+        data_items = self.complexed_chart.datetime_days(start_date, days=days, control=3)
         print("")
         for index, (data_item, current_date_item) in enumerate(zip(data_items, current_date)):
             data_bool = data_item['created_at'] == current_date_item
@@ -92,5 +88,5 @@ async def main():
 
 if __name__ == "__main__":
     white_test_instance = WhiteTest()
-    asyncio.run(white_test_instance())  # 비동기 호출
+    asyncio.run(white_test_instance())
     pytest.main()
