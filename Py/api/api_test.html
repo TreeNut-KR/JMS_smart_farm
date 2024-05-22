@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>주 데이터 요청</title>
+    <meta charset="UTF-8">
+    <title>주 데이터 요청</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Viewport 메타 태그 추가 -->
 </head>
 <body>
     <h2>주 데이터 요청</h2>
@@ -30,7 +31,7 @@
                 week: week
             };
 
-            fetch('http://localhost:8008/api/week', {
+            fetch('http://localhost:8000/api/week', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

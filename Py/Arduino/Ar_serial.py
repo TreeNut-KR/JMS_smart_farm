@@ -1,4 +1,4 @@
-from pydantic import BaseModel  
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
 import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
@@ -13,10 +13,9 @@ class Database:
         self.directory = './' # 우분투 기준
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
-        self.conn = sqlite3.connect(self.directory+'/JMSPlant.db', check_same_thread=False) # check_same_thread 파라미터를 False로 설정
+        self.conn = sqlite3.connect(self.directory+'/JMSPlant.db', check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.create_table()
-        self.check_and_insert_default_data()
 
     def create_table(self):
         '''
@@ -54,7 +53,15 @@ class Database:
         INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """
-        self.cursor.execute(query, (1, data.get("sysfan"), data.get("wpump"),  data.get("led"),  data.get("humidity"),  data.get("temperature"), data.get("ground1"), data.get("ground2"),current_time_str, current_time_str))
+        self.cursor.execute(query,(1,data.get("sysfan"),
+                                    data.get("wpump"),
+                                    data.get("led"),
+                                    data.get("humidity"),
+                                    data.get("temperature"),
+                                    data.get("ground1"),
+                                    data.get("ground2"),
+                                    current_time_str,
+                                    current_time_str))
         self.conn.commit()
 
 class Ardu(device_data):
@@ -63,9 +70,15 @@ class Ardu(device_data):
         self.db = Database()
         self.port = self.ar_get("COM4")
         self.arduino = None
-        self.data = {"isrun": False, "sysfan": False, "wpump": False, "led": False, "humidity": 0.0, "temperature": 0.0, "ground1": 0, "ground2": 0}
+        self.data = {"isrun": False,
+                     "sysfan": False,
+                     "wpump": False,
+                     "led": False,
+                     "humidity": 0.0,
+                     "temperature": 0.0,
+                     "ground1": 0,
+                     "ground2": 0}
         self.last_print_time = time.time()
-
         try:
             self.arduino = serial.Serial(self.port, 9600)
         except Exception as e:
@@ -95,9 +108,9 @@ class Ardu(device_data):
             pass
 
     def read_data(self) -> None:
-        data = None 
+        data = None
         if self.arduino.in_waiting > 0:
-            try:    
+            try:
                 data = self.arduino.readline().decode().rstrip()
             except:
                 pass
