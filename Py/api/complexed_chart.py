@@ -274,7 +274,6 @@ async def post_hourly_sensor_data(request_data: DataRequest):
                     Hourly_ground1=row[4],
                     Hourly_ground2=row[5],
                     Created_at=row[6]) for row in rows]
-    
         return JSONResponse(content=data)
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")

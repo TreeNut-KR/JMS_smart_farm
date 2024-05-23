@@ -2,77 +2,70 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
+#include <avr/wdt.h> // Watchdog 타이머를 위한 라이브러리 추가
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-#define GROUND1   A2    //토양센서1
-#define GROUND2   A3    //토양센서2
-#define DHTPIN    4     //온습도센서
-#define LED       8     //LED
-#define H2O2_PUMP 11    //과산화수소 펌프
-#define W_PUMP    12    //펌프
-#define SYS_FAN   13    //sys팬
+#define GROUND1 A2
+#define GROUND2 A3
+#define DHTPIN  4
+#define LED     8
+#define W_PUMP  12
+#define SYS_FAN 13
 
 #define DHTTYPE DHT21
 
 DHT dht(DHTPIN, DHTTYPE);
-unsigned long previousMillis = 0; // 데이터를 전송한 마지막 시간을 저장하는 변수
-const long interval = 1000;      // 데이터를 전송할 간격, 밀리초 단위 (1초)
+unsigned long previousMillis = 0;
+const long interval = 1000;
 
 void setup() {
+  wdt_disable(); // 초기 설정 동안에는 Watchdog를 비활성화
   Serial.begin(9600);
   dht.begin();
   pinMode(SYS_FAN, OUTPUT);
   pinMode(W_PUMP, OUTPUT);
   pinMode(LED, OUTPUT);
-  pinMode(H2O2_PUMP, OUTPUT);
   digitalWrite(LED, HIGH);
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
-    for(;;);} // Don't proceed, loop forever}-
-    // Clear the buffer
+    for(;;);} // Don't proceed, loop forever
   display.clearDisplay();
   display.setTextSize(2);
   display.setTextColor(WHITE);
+
+  wdt_enable(WDTO_8S); // Watchdog 타이머를 8초로 설정
 }
 
 void loop() {
+
+  wdt_reset(); // Loop의 시작에서 Watchdog 타이머를 리셋
+  bool  IsRun = true;
+  bool  D_SYSFAN;
+  bool  D_WPUMP;
+  bool  D_LED = true;
+  float Humidity    = dht.readHumidity();
+  float Temperature = dht.readTemperature();
+  int   Ground1     = analogRead(A2);
+  int   Ground2     = analogRead(A3);
   unsigned long currentMillis = millis();
+
+  if(Humidity >= 30.0 || Temperature>= 35.0) {
+    digitalWrite(SYS_FAN, HIGH); D_SYSFAN = true;}
+  else {
+    digitalWrite(SYS_FAN, LOW);  D_SYSFAN = false;}
+
+  if(Ground1 >= 380 || Ground2 >= 380) {
+    digitalWrite(W_PUMP, HIGH);  D_WPUMP = true;}
+  else {
+    digitalWrite(W_PUMP, LOW);   D_WPUMP = false;}
+  
+  SendDataToOLEDDisplay(Humidity, Temperature);
   if (currentMillis - previousMillis >= interval) {
-    bool  IsRun = true;                         //작동여부
-    bool  D_SYSFAN;                             //시스탬펜 on/off
-    bool  D_WPUMP;                              //워터펌프 on/off
-    bool  D_LED;                                //LED on/off
-    bool  D_H2O2PUMP;                           //H2O2 펌프 on/off
-    float Humidity    = dht.readHumidity();     //습도 %
-    float Temperature = dht.readTemperature();  //온도 소숫점 2번째 자리까지
-    int   Ground1     = analogRead(A2);         //토양1 수분
-    int   Ground2     = analogRead(A3);         //토양2 수분
-
-    if(Humidity >= 30.0 || Temperature>= 35.0)  //SYSFAN 작동여부
-      {digitalWrite(SYS_FAN, HIGH); D_SYSFAN = true;}
-    else
-      {digitalWrite(SYS_FAN, LOW);  D_SYSFAN = false;}
-
-    if(Ground1 >= 380 || Ground2 >= 380)      //WPUMP 작동여부
-      {
-        digitalWrite(W_PUMP, HIGH);  D_WPUMP = true;
-        digitalWrite(D_H2O2PUMP, HIGH); D_H2O2PUMP = true;
-      }
-    else
-      {
-        digitalWrite(W_PUMP, LOW);   D_WPUMP = false;
-        digitalWrite(D_H2O2PUMP, LOW); D_H2O2PUMP = false;
-      }
-    
-    SendDataToOLEDDisplay(Humidity, Temperature);
-    //OLED에 데이터 보내기
     SendDataToRaspberryPi(IsRun, D_SYSFAN, D_WPUMP, D_LED, Humidity, Temperature, 1024 - Ground1, 1024 - Ground2);
-    //라즈베리파이에 데이터 보내기
+    previousMillis = currentMillis;
   }
 }
 
