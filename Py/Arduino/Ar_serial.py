@@ -46,29 +46,33 @@ class Database:
         '''
         DB에 데이터 삽입
         '''
-        
-        current_time = datetime.now(timezone(timedelta(hours=9)))
-        current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
-        query = """
-        INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
-        """
-        self.cursor.execute(query,(1,data.get("sysfan"),
-                                    data.get("wpump"),
-                                    data.get("led"),
-                                    data.get("humidity"),
-                                    data.get("temperature"),
-                                    data.get("ground1"),
-                                    data.get("ground2"),
-                                    current_time_str,
-                                    current_time_str))
-        self.conn.commit()
+        if( data.get("sysfan") != None and      data.get("wpump") != None and
+            data.get("led") != None and         data.get("humidity") != None and
+            data.get("temperature") != None and data.get("ground1")!= None and
+            data.get("ground2")):
+
+            current_time = datetime.now(timezone(timedelta(hours=9)))
+            current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
+            query = """
+            INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+            """
+            self.cursor.execute(query,(1,data.get("sysfan"),
+                                        data.get("wpump"),
+                                        data.get("led"),
+                                        data.get("humidity"),
+                                        data.get("temperature"),
+                                        data.get("ground1"),
+                                        data.get("ground2"),
+                                        current_time_str,
+                                        current_time_str))
+            self.conn.commit()
 
 class Ardu(device_data):
     def __init__(self) -> None:
         super().__init__()
         self.db = Database()
-        self.port = self.ar_get("COM4")
+        self.port = self.ar_get("USB")
         self.arduino = None
         self.data = {"isrun": False,
                      "sysfan": False,
