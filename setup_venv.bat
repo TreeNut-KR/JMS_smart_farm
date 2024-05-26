@@ -18,7 +18,7 @@ echo 가상 환경 활성화 중...
 CALL %ENV_DIR%\Scripts\activate.bat
 
 :: pip 최신 버전으로 업그레이드 (가상 환경 내부)
-pip install --upgrade pip
+python.exe -m pip install --upgrade pip
 
 :: requirements.txt 파일에 있는 모든 패키지 설치
 pip install -r requirements.txt
