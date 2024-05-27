@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
+import datetime
 # .env 파일에서 환경 변수 로드
 load_dotenv()
 
@@ -68,9 +68,9 @@ if __name__ == "__main__":
     youtube = get_authenticated_service()
     try:
         create_live_event(youtube,
-                          "테스트 라이브 이벤트",
+                          "JMS Smart Farm Live",
                           "이것은 테스트 라이브 이벤트입니다.",
-                          "2024-05-20T00:00:00.000Z",
-                          "2024-05-20T01:00:00.000Z")
+                          datetime.timedelta(),
+                          datetime.timedelta(hours=12))
     except HttpError as e:
         print("HTTP 에러 %d 발생:/n%s" % (e.resp.status, e.content))
