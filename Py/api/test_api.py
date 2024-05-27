@@ -26,7 +26,7 @@ async def test_black_box():
         # POST 요청 테스트
         post_endpoints = {
             "/api/hourly": {"date": "2024-05-16"},
-            "/api/week": {"year": 2024, "month": 12, "week": 2},
+            "/api/week": {"year": 2024, "month": 12, "week": 4},
             "/api/month": {"year": 2024, "month": 12},
         }
 
