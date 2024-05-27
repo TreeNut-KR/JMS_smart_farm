@@ -207,29 +207,6 @@ def execute_read_query(control, checkdate):
         return
     return rows
 
-# @app.exception_handler(ValueError)
-# async def value_error_handler(request: Request, exc: ValueError):
-#     logging.error(f"ValueError: {exc}")
-#     return JSONResponse(
-#         status_code=400,
-#         content={"detail": "잘못된 값이 입력되었습니다."},
-#     )
-
-# @app.exception_handler(IndexError)
-# async def index_error_handler(request: Request, exc: IndexError):
-#     logging.error(f"IndexError: {exc}")
-#     return JSONResponse(
-#         status_code=500,
-#         content={"detail": "서버 내부 오류입니다."},
-#     )
-
-# @app.exception_handler(Exception)
-# async def general_exception_handler(request: Request, exc: Exception):
-#     logging.error(f"Exception: {exc}")
-#     return JSONResponse(
-#         status_code=404,
-#         content={"detail": "데이터를 찾을 수 없습니다."},
-#     )
 
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
