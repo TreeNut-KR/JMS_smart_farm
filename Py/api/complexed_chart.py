@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
@@ -72,6 +73,7 @@ class MonthDataRequest(BaseModel):
                         description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
     month: int = Field(..., title="월", gt=0, lt=13,
                         description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
+    
 
 
 def get_db_connection(DB: str = './JMSPlant.db'):
@@ -204,6 +206,69 @@ def execute_read_query(control, checkdate):
     except:
         return
     return rows
+
+# @app.exception_handler(ValueError)
+# async def value_error_handler(request: Request, exc: ValueError):
+#     logging.error(f"ValueError: {exc}")
+#     return JSONResponse(
+#         status_code=400,
+#         content={"detail": "잘못된 값이 입력되었습니다."},
+#     )
+
+# @app.exception_handler(IndexError)
+# async def index_error_handler(request: Request, exc: IndexError):
+#     logging.error(f"IndexError: {exc}")
+#     return JSONResponse(
+#         status_code=500,
+#         content={"detail": "서버 내부 오류입니다."},
+#     )
+
+# @app.exception_handler(Exception)
+# async def general_exception_handler(request: Request, exc: Exception):
+#     logging.error(f"Exception: {exc}")
+#     return JSONResponse(
+#         status_code=404,
+#         content={"detail": "데이터를 찾을 수 없습니다."},
+#     )
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    logging.error(f"ValueError: {exc}")
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "잘못된 값이 입력되었습니다."},
+    )
+
+@app.exception_handler(IndexError)
+async def index_error_handler(request: Request, exc: IndexError):
+    logging.error(f"IndexError: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "서버 내부 오류입니다."},
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logging.error(f"Exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "일반적인 예외가 발생했습니다."},
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "안녕하세요반갑습니다"},
+    )
+
 
 @app.get("/", summary="root 접속 시 docs 이동")
 def root():
@@ -355,15 +420,15 @@ async def post_month_data(request_data: MonthDataRequest):
     logging.info("API /api/month 호출됨")
     date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
     start_date = datetime.strptime(date_str, "%Y-%m-%d")
-    try:
-        data = week_days(start_date, days=30, control=4)
-        return JSONResponse(content=data)
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except IndexError:
-        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
-    except Exception:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+    # try:
+    data = week_days(start_date, days=30, control=4)
+    return JSONResponse(content=data)
+    # except ValueError as ve:
+    #     raise HTTPException(status_code=400, detail=str(ve))
+    # except IndexError:
+    #     raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
+    # except Exception:
+    #     raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
