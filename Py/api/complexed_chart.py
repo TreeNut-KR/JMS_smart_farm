@@ -1,16 +1,25 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+import os
+import calendar
+from datetime import datetime, timedelta
+import logging
+import sqlite3
+import requests
+from dotenv import load_dotenv
+
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
-from starlette.responses import RedirectResponse
+
 from pydantic import BaseModel, Field, validator
-from datetime import datetime, timedelta
-import calendar
-import sqlite3
+from authlib.integrations.starlette_client import OAuth
+from jose import jwt
+
 import uvicorn
-import logging
-import re
+
 
 def custom_openapi():
     if app.openapi_schema:
@@ -18,17 +27,22 @@ def custom_openapi():
     openapi_schema = get_openapi(
         title="Smart Farm FastAPI",
         version="",
-        description="스마트팜 센서 데이터 전송 API\n\n"+
-                    "전체 데이터ㅤㅤ=>ㅤget('/api')\n\n"+
+        summary="스마트팜 센서 데이터 전송 및 구글 API",
+        description="전체 데이터ㅤㅤ=>ㅤget('/api')\n\n"+
                     "최신 데이터ㅤㅤ=>ㅤget('/api/latest')\n\n"+
                     "인덱스 데이터ㅤ=>ㅤget('/api/idx100')\n\n"+
                     "시간별 데이터ㅤ=>ㅤpost('/api/hourly')\n\n"+
                     "주간별 데이터ㅤ=>ㅤpost('/api/week')\n\n"+
-                    "월별 데이터ㅤㅤ=>ㅤpost('/api/month')",
+                    "월별 데이터ㅤㅤ=>ㅤpost('/api/month')\n\n"+
+                    "ㅤ\n\n"+
+                    "로그인 예제ㅤㅤ=>ㅤget('/login')\n\n"+
+                    "로그인 주소ㅤㅤ=>ㅤpost('/login/google')\n\n"+
+                    "계정 정보수집ㅤ=>ㅤpost('/auth/google')\n\n"+
+                    "로그인 토큰ㅤㅤ=>ㅤpost('/token')",
         routes=app.routes,
     )
     openapi_schema["info"]["x-logo"] = {
-        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+        "url": "https://drive.google.com/thumbnail?id=112KMQN8u0iSUa-Wiwl2hAHwEEgNeSH1Q"
     }
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -38,6 +52,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 app = FastAPI()
 app.openapi = custom_openapi
 
+# 환경 변수 로드
+load_dotenv()
+templates = Jinja2Templates(directory="Py/google")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# OAuth 클라이언트 설정
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    authorize_url=os.getenv("GOOGLE_AUTH_URI"),
+    authorize_params=None,
+    access_token_url=os.getenv("GOOGLE_TOKEN_URI"),
+    access_token_params=None,
+    refresh_token_url=None,
+    redirect_uri=os.getenv("GOOGLE_REDIRECT_URIS"),
+    client_kwargs={'scope': 'openid profile email'},
+)
+
+
 # CORS 미들웨어 추가
 app.add_middleware(
     CORSMiddleware,
@@ -46,10 +81,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 class DataRequest(BaseModel):
     date: str = Field(..., title="날짜",
                         description="날짜를 나타내는 문자열입니다. 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다.",)
+    
     @validator('date')
     def check_date_range(cls, v):
         start_date = datetime.strptime("1900-01-01", "%Y-%m-%d")
@@ -57,21 +92,56 @@ class DataRequest(BaseModel):
         input_date = datetime.strptime(v, "%Y-%m-%d")
         
         if not (start_date <= input_date <= end_date):
-            print(ValueError(f"날짜는 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다. 입력된 날짜: {v}"))
             raise ValueError(f"날짜는 1900-01-01에서 9999-12-31 사이의 값을 가져야 합니다. 입력된 날짜: {v}")
         return v
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                "date": "2024-05-25"
+                }
+            ]
+        }
+    }
+
+   
 class WeekDataRequest(BaseModel):
-    year: int = Field(...,title="년도", gt=1899, lt=10000,
+    year: int = Field(..., title="년도", gt=1899, lt=10000,
                         description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
     month: int = Field(..., title="월", gt=0, lt=13,
                         description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
     week: int = Field(..., title="주차", gt=0, lt=6,
-                        description="주차을 나타내는 정수입니다. 1에서 5 사이의 값을 가져야 합니다.")
+                        description="주차를 나타내는 정수입니다. 1에서 5 사이의 값을 가져야 합니다.")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                "year": 2024,
+                "month": 5,
+                "week": 1
+                }
+            ]
+        }
+    }
+
+
 class MonthDataRequest(BaseModel):
     year: int = Field(..., title="년도", gt=1899, lt=10000,
                         description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
     month: int = Field(..., title="월", gt=0, lt=13,
                         description="월을 나타내는 정수입니다. 1에서 12 사이의 값을 가져야 합니다.")
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                "year": 2024,
+                "month": 5
+                }
+            ]
+        }
+    }
 
 def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     if year < 1900 or year > 9999:
@@ -125,7 +195,7 @@ def datetime_days(start_date: datetime, days: int, control: int) -> list:
             })
     return data
 
-def execute_read_query(control, checkdate, DB: str = './JMSPlant.db'):
+def execute_read_query(control, checkdate=None, DB: str = './JMSPlant.db'):
     conn = sqlite3.connect(DB, check_same_thread=False)
     cursor = conn.cursor()
     
@@ -197,7 +267,7 @@ def execute_read_query(control, checkdate, DB: str = './JMSPlant.db'):
                 hour_slot;
         """
         query = datequery.format(checkdate, checkdate)
-
+        
     try:
         cursor.execute(query)
         rows = cursor.fetchall()
@@ -283,11 +353,6 @@ async def post_hourly_sensor_data(request_data: DataRequest):
 
     Args:\n\n
     ㅤㅤdate (str): 날짜(yyyy-mm-dd)
-
-    예제 요청:
-    {
-        "date": "2024-05-25"
-    }
     '''
     logging.info("API /api/hourly 호출됨")
     rows = execute_read_query(control=5, checkdate=request_data.date)
@@ -312,13 +377,6 @@ async def post_data(request_data: WeekDataRequest):
     ㅤㅤyear (int): 년도(yyyy)\n\n
     ㅤㅤmonth (int): 월(1 ~ 12)\n\n
     ㅤㅤweek (int): 주차(1 ~ 5)
-
-    예제 요청:
-    {
-        "year": 2024,
-        "month": 5
-        "week": 1
-    }
     '''
     logging.info("API /api/week 호출됨")
     start_date, _ = datetime_date(request_data.year, request_data.month, request_data.week)
@@ -343,12 +401,6 @@ async def post_month_data(request_data: MonthDataRequest):
     Args:\n\n
     ㅤㅤyear (int): 년도(yyyy)\n\n
     ㅤㅤmonth (int): 월(1 ~ 12)
-
-    예제 요청:
-    {
-        "year": 2024,
-        "month": 5
-    }
     '''
     logging.info("API /api/month 호출됨")
     # date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
@@ -362,6 +414,65 @@ async def post_month_data(request_data: MonthDataRequest):
         raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
     except Exception:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+
+
+@app.get("/login", response_class=HTMLResponse, summary="구글 로그인 테스트")
+async def get_login_html(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/login/google", summary="구글 로그인 URL")
+async def login_google():
+    redirect_uris = os.getenv('GOOGLE_REDIRECT_URIS').split(',')
+    redirect_uri = redirect_uris[0]
+    url = (
+        f"{os.getenv('GOOGLE_AUTH_URI')}?response_type=code"
+        f"&client_id={os.getenv('GOOGLE_CLIENT_ID')}"
+        f"&redirect_uri={redirect_uri}"
+        f"&scope=openid%20profile%20email"
+        f"&access_type=offline"
+    )
+    return {"url": url}
+
+
+@app.get("/auth/google", summary="구글 로그인 및 계정 정보")
+async def auth_google(code: str):
+    token_url = os.getenv("GOOGLE_TOKEN_URI")
+    data = {
+        "code": code,
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+        "redirect_uri": os.getenv("GOOGLE_REDIRECT_URIS").split(',')[0],
+        "grant_type": "authorization_code",
+    }
+    response = requests.post(token_url, data=data)
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch token")
+    access_token = response.json().get("access_token")
+    user_info_response = requests.get("https://www.googleapis.com/oauth2/v1/userinfo",
+                                        headers={"Authorization": f"Bearer {access_token}"})
+    user_info = user_info_response.json()
+    conn = sqlite3.connect('JMSPlant.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    INSERT OR REPLACE INTO user_info (id, email, verified_email, name, given_name, family_name, picture, locale)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        user_info.get("id"),
+        user_info.get("email"),
+        user_info.get("verified_email"),
+        user_info.get("name"),
+        user_info.get("given_name"),
+        user_info.get("family_name", ""),  # 기본값을 빈 문자열로 설정
+        user_info.get("picture"),
+        user_info.get("locale")
+    ))
+    conn.commit()
+    conn.close()
+    return user_info
+
+@app.get("/token")
+async def get_token(token: str = Depends(oauth2_scheme)):
+    return jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Login</title>
+</head>
+<body>
+    <h2>Google 로그인 예제</h2>
+    <button id="google-login-btn">Google 로그인</button>
+
+    <script>
+        document.getElementById('google-login-btn').addEventListener('click', function() {
+            console.log("Google 로그인 버튼 클릭됨"); // 클릭 로깅 추가
+            // 서버의 /login/google 엔드포인트 호출
+            fetch('/login/google')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('네트워크 응답이 올바르지 않습니다.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("리디렉션 URL:", data.url); // 리디렉션 URL 로깅 추가
+                    // Google 로그인 페이지로 리디렉션
+                    window.location.href = data.url;
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
