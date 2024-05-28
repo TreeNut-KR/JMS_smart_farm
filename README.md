@@ -103,12 +103,30 @@ docker compose -f "docker-compose.yml" up -d --build
 
 ---
 
+## 🛠️ setup_venv.sh
+
+- 경로 : `./setup_venv.sh`
+- Python 3.12.1 환경 => [설치](https://www.python.org/downloads/release/python-3121/)
+  - 설치 시 Add Pyhton 3.12.1 to PATH 체크
+- venv 가상화 실행 명령어
+
+```bash
+chmod +x setup_venv.sh
+./setup_venv.sh
+```
+
+---
+
+
 ## 🔐 .env
 
-- 경로 : `./Py/youtube_live/.env`
+- 경로 
+   -  `./Py/google/.env`
+   -  `./API/.env`
+
 - .env 내용
 
-```.env
+```env
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
 GOOGLE_PROJECT_ID=your_project_id

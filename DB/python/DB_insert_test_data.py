@@ -4,7 +4,7 @@ from sqlite3 import Error
 def create_connection():
     conn = None
     try:
-        conn = sqlite3.connect('./JMSPlant_test.db') # 상대 경로에 데이터베이스 연결 생성
+        conn = sqlite3.connect('./JMSPlant.db') # 상대 경로에 데이터베이스 연결 생성
         return conn
     except Error as e:
         print(e)
@@ -36,15 +36,6 @@ def main():
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP DEFAULT NULL
     );
-
-    CREATE TABLE IF NOT EXISTS ArduinoControl (
-        idx INTEGER PRIMARY KEY AUTOINCREMENT,
-        led BOOL,
-        sysfan BOOL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    INSERT INTO ArduinoControl (led, sysfan, updated_at) VALUES (1, 0, CURRENT_TIMESTAMP);
 
     BEGIN;
 
