@@ -166,7 +166,7 @@ class DB_Query():
             logging.error(f"데이터베이스 쿼리 실행 중 오류 발생: {e}")
             return []
 
-    def fetch_latest_data(self):
+    async def fetch_latest_data(self):
         query = '''
             SELECT idx, sysfan, wpump, led, temperature, humidity, ground1, ground2, created_at
             FROM smartFarm
@@ -174,14 +174,14 @@ class DB_Query():
         '''
         return self.execute_query(query)
 
-    def fetch_recent_100_data(self):
+    async def fetch_recent_100_data(self):
         query = '''
             SELECT idx, temperature, humidity, ground1, ground2, created_at
             FROM smartFarm ORDER BY idx DESC LIMIT 100
         '''
         return self.execute_query(query)
 
-    def fetch_hourly_data(self, checkdate: datetime):
+    async def fetch_hourly_data(self, checkdate: datetime):
         datequery = """
             WITH RECURSIVE hours AS (
                 SELECT 0 AS hour
@@ -213,7 +213,7 @@ class DB_Query():
         query = datequery.format(checkdate, checkdate)
         return self.execute_query(query)
 
-    def fetch_weekly_data(self, checkdate: datetime):
+    async def fetch_weekly_data(self, checkdate: datetime):
         datequery = '''
             WHERE date(created_at) BETWEEN date('{}')
             AND date('{}', '+6 days')
@@ -226,7 +226,7 @@ class DB_Query():
         ''' + datequery.format(checkdate, checkdate)
         return self.execute_query(query)
 
-    def fetch_monthly_data(self, checkdate: datetime):
+    async def fetch_monthly_data(self, checkdate: datetime):
         datequery = '''
             WHERE date(created_at) BETWEEN date('{}')
             AND date('{}', '+30 days')
@@ -302,7 +302,7 @@ async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
     '''DB의 가장 최신 날짜의 데이터를 반환합니다.'''
 
     logging.info("API /api/latest 호출됨")
-    rows = db_query.fetch_latest_data()
+    rows = await db_query.fetch_latest_data()
     if rows:
         data = [dict(Latest_temperature=row[4],
                     Latest_humidity=row[5],
@@ -322,7 +322,7 @@ async def post_date_data(db_query: DB_Query = Depends(get_db_query)):
     '''DB의 idx필드의 최신 데이터 기준 내림차순 100개를 반환합니다.'''
 
     logging.info("API /api/date 호출됨")
-    rows = db_query.fetch_recent_100_data()
+    rows = await db_query.fetch_recent_100_data()
     if rows:
         data = [dict(index=index,
                     Date_temperature=row[1],
@@ -343,7 +343,7 @@ async def post_hourly_sensor_data(request_data: DataRequest, db_query: DB_Query 
     ㅤㅤdate (str): 날짜(yyyy-mm-dd)
     '''
     logging.info("API /api/hourly 호출됨")
-    rows = db_query.fetch_hourly_data(checkdate=request_data.date)
+    rows = await db_query.fetch_hourly_data(checkdate=request_data.date)
     if rows:
         data = [dict(Hour_slot=row[0],
                     Hourly_temperature=row[2],
@@ -371,7 +371,7 @@ async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(
         raise HTTPException(status_code=400, detail="잘못된 날짜입니다.")  # 잘못된 요청에 대한 응답 코드 수정
     try:
         date_list = [start_date + timedelta(days=i) for i in range(7)] 
-        rows = db_query.fetch_weekly_data(checkdate=start_date)
+        rows = await db_query.fetch_weekly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
     except ValueError as ve:
@@ -395,7 +395,7 @@ async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = D
     start_date, days_in_month = datetime_date(request_data.year, request_data.month, index=1)
     try:
         date_list = [start_date + timedelta(days=i) for i in range(days_in_month)] 
-        rows = db_query.fetch_monthly_data(checkdate=start_date)
+        rows = await db_query.fetch_monthly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
     except ValueError as ve:
