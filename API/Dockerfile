@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 어플리케이션 실행
-CMD ["uvicorn", "Py.api.complexed_chart:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "API.complexed_chart:app", "--host", "0.0.0.0", "--port", "8000"]

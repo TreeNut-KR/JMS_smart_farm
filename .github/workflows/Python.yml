@@ -22,4 +22,4 @@ jobs:
         
     - name: Run tests
       run: |
-        python Py/api/test_api.py
+        python API/test_api.py
