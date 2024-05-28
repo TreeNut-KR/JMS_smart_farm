@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
+from fastapi.exceptions import RequestValidationError
 from starlette.responses import RedirectResponse
 from pydantic import BaseModel, Field, validator
 from datetime import datetime, timedelta
@@ -207,7 +208,7 @@ def execute_read_query(control, checkdate):
         return
     return rows
 
-
+#400 오류처리
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
     logging.error(f"ValueError: {exc}")
@@ -215,7 +216,7 @@ async def value_error_handler(request: Request, exc: ValueError):
         status_code=400,
         content={"detail": "잘못된 값이 입력되었습니다."},
     )
-
+#500 오류처리
 @app.exception_handler(IndexError)
 async def index_error_handler(request: Request, exc: IndexError):
     logging.error(f"IndexError: {exc}")
@@ -223,7 +224,7 @@ async def index_error_handler(request: Request, exc: IndexError):
         status_code=500,
         content={"detail": "서버 내부 오류입니다."},
     )
-
+#따로 설정한 오류 외에 다른 오류 발생시 출력
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     logging.error(f"Exception: {exc}")
@@ -238,14 +239,49 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
-
+#404 오류처리
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=404,
         content={"detail": "안녕하세요반갑습니다"},
     )
+#422 오류처리
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "잘못된 입력값입니다"},
+    )
+#424 오류처리
+@app.exception_handler(424)
+async def failed_dependency_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=424,
+        content={"detail": "의존성 실패로 요청이 처리되지 않았습니다"},
+    )
 
+#429 오류처리
+@app.exception_handler(429)
+async def too_many_requests_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "요청이 너무 많습니다"},
+    )
+#502 오류처리
+@app.exception_handler(502)
+async def bad_gateway_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=502,
+        content={"detail": "게이트웨이 오류가 발생했습니다"},
+    )
+# 오류처리 예제 - 각 오류처리 구문 exc: Exeption 에서 exc:HTTPExeption 수정 
+#status_code, detail 내용 수정 후 example 실행 시 결과 확인 가능
+# # 예제 엔드포인트
+# @app.get("/example")
+# async def example_endpoint():
+#     # 502 에러를 강제로 발생시키는 예제
+#     raise HTTPException(status_code=424, detail="의존성 실패 오류입니다.")
 
 @app.get("/", summary="root 접속 시 docs 이동")
 def root():
@@ -257,6 +293,7 @@ async def custom_redoc_html():
         openapi_url="/openapi.json",
         title="My FastAPI App - ReDoc"
     )
+
 
 @app.get("/api", summary="전체 데이터 조회")
 async def get_data():
@@ -273,8 +310,6 @@ async def get_data():
                     Created_at=row[5]) for row in rows]
     
         return JSONResponse(content=data)
-    else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
 @app.get("/api/latest", summary="최근 데이터 조회")
 async def get_latest_data():
@@ -291,8 +326,6 @@ async def get_latest_data():
                     Created_at=row[5]) for row in rows]
     
         return JSONResponse(content=data[0])
-    else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
     
 @app.post("/api/hourly", response_model=DataRequest, summary="시간 데이터 조회")
 async def post_hourly_sensor_data(request_data: DataRequest):
@@ -318,8 +351,6 @@ async def post_hourly_sensor_data(request_data: DataRequest):
                     Created_at=row[6]) for row in rows]
     
         return JSONResponse(content=data)
-    else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
 @app.post("/api/date", response_model=DataRequest, summary="일간 데이터 조회")
 async def post_date_data(request_data : DataRequest):
@@ -344,8 +375,6 @@ async def post_date_data(request_data : DataRequest):
                     Created_at=row[5]) for row in rows]
     
         return JSONResponse(content=data)
-    else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
 @app.post("/api/week", response_model=WeekDataRequest, summary="주간 데이터 조회")
 async def post_week_data(request_data: WeekDataRequest):
@@ -368,15 +397,9 @@ async def post_week_data(request_data: WeekDataRequest):
     start_date = week_date(request_data.year, request_data.month, request_data.week)
     if not start_date:
         raise HTTPException(status_code=400, detail="잘못된 날짜입니다.")  # 잘못된 요청에 대한 응답 코드 수정
-    try:
-        data = week_days(start_date, days=7, control=3)
-        return JSONResponse(content=data)
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except IndexError:
-        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
-    except Exception:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+
+    data = week_days(start_date, days=7, control=3)
+    return JSONResponse(content=data)
 
     
 @app.post("/api/month", response_model=MonthDataRequest, summary="월간 데이터 조회")
@@ -397,15 +420,10 @@ async def post_month_data(request_data: MonthDataRequest):
     logging.info("API /api/month 호출됨")
     date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
     start_date = datetime.strptime(date_str, "%Y-%m-%d")
-    # try:
+    
     data = week_days(start_date, days=30, control=4)
     return JSONResponse(content=data)
-    # except ValueError as ve:
-    #     raise HTTPException(status_code=400, detail=str(ve))
-    # except IndexError:
-    #     raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
-    # except Exception:
-    #     raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+    
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
