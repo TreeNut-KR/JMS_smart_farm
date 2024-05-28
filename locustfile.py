@@ -1,7 +1,18 @@
 from locust import HttpUser, task, between
+import socket
+
+def get_host_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Google의 메인 DNS 서버 주소를 사용해도 실제로 연결되지는 않지만, IP를 얻는 데 사용할 수 있습니다.
+        s.connect(("8.8.8.8", 80))
+        IP = s.getsockname()[0]
+    finally:
+        s.close()
+    return IP
 
 class UserBehavior(HttpUser):
-    host = "http://localhost:8000"
+    host = f"http://{get_host_ip()}:8000"
     wait_time = between(60, 1200)
 
     @task
