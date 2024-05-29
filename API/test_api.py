@@ -53,7 +53,7 @@ class WhiteTest:
         )
         assert data_item == current_date_item
 
-    def test_white_week_days(self) -> None:
+    async def test_white_week_days(self) -> None:
         current_date=[]
         days = 31
         start_date = datetime.strptime("2024-06-30", "%Y-%m-%d") # 경계 날짜 테스트
@@ -62,7 +62,7 @@ class WhiteTest:
 
         date_list = [start_date + timedelta(days=i) for i in range(days)] 
         rows =  self.complexed_chart.DB_Query().fetch_weekly_data(checkdate=start_date)
-        data_items = self.complexed_chart.datetime_days(date_list, rows)    
+        data_items = await self.complexed_chart.datetime_days(date_list, rows)    
         
         print("")
         for index, (data_item, current_date_item) in enumerate(zip(data_items, current_date)):

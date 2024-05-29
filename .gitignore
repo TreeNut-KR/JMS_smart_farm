@@ -165,4 +165,5 @@ cython_debug/
 google_user.db
 
 #vscode live
+.vscode
 .vscode/
