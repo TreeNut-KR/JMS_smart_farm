@@ -163,3 +163,7 @@ cython_debug/
 
 # Google Account
 google_user.db
+
+#vscode live
+.vscode
+.vscode/
