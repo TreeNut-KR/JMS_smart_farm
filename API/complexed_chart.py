@@ -8,6 +8,7 @@ import os
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordBearer
@@ -15,7 +16,7 @@ from fastapi.openapi.utils import get_openapi
 
 from authlib.integrations.starlette_client import OAuth
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Any
+from typing import List, Any, Optional
 from jose import jwt
 
 import uvicorn
@@ -156,18 +157,18 @@ class idx100Data(BaseModel):
     
 class hourData(BaseModel):
     Hour_slot: str
-    Hourly_temperature: float|None
-    Hourly_humidity: float|None
-    Hourly_ground1: int|None
-    Hourly_ground2: int|None
-    Created_at: datetime|None
+    Hourly_temperature:  Optional[float]
+    Hourly_humidity:  Optional[float]
+    Hourly_ground1:  Optional[int]
+    Hourly_ground2: Optional[int]
+    Created_at: Optional[datetime]
 
 class daysData(BaseModel):
-    temperature: float|None
-    humidity: float|None
-    ground1: int|None
-    ground2: int|None
-    created_at: datetime|None
+    temperature: Optional[float]
+    humidity: Optional[float]
+    ground1: Optional[int]
+    ground2: Optional[int]
+    created_at: Optional[datetime]
     
 class DB_Query():
     def __init__(self):
@@ -323,6 +324,89 @@ def get_db_query():
     '''DB_Query 클래스 의존성 생성 함수'''
     with DB_Query() as db:
         yield db
+
+#400 오류처리
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    logging.error(f"ValueError: {exc}")
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "잘못된 값이 입력되었습니다."},
+    )
+#500 오류처리
+@app.exception_handler(IndexError)
+async def index_error_handler(request: Request, exc: IndexError):
+    logging.error(f"IndexError: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "서버 내부 오류입니다."},
+    )
+#따로 설정한 오류 외에 다른 오류 발생시 출력
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logging.error(f"Exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "일반적인 예외가 발생했습니다."},
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+#404 오류처리
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "안녕하세요반갑습니다"},
+    )
+#422 오류처리
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "잘못된 입력값입니다"},
+    )
+#424 오류처리
+@app.exception_handler(424)
+async def failed_dependency_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=424,
+        content={"detail": "의존성 실패로 요청이 처리되지 않았습니다"},
+    )
+
+#429 오류처리
+@app.exception_handler(429)
+async def too_many_requests_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "요청이 너무 많습니다"},
+    )
+#502 오류처리
+@app.exception_handler(502)
+async def bad_gateway_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=502,
+        content={"detail": "게이트웨이 오류가 발생했습니다"},
+    )
+# 오류처리 예제 - 각 오류처리 구문 exc: Exeption 에서 exc:HTTPExeption 수정 
+#status_code 내용 수정 후 example 실행 시 결과 확인 가능
+# 예제 엔드포인트
+@app.get("/example")
+async def example_endpoint():
+    # 429 에러를 강제로 발생시키는 예제
+    raise HTTPException(status_code=429)
+@app.post("/example/{status_code}") 
+async def example(status_code: int):
+    if status_code in [400, 500, 404, 422, 424, 429, 502]:
+        raise HTTPException(status_code=status_code)
+    return {"message": "Invalid status code"}
+
+
+
 
 @app.get("/", summary="root 접속 시 docs 이동")
 def root():
