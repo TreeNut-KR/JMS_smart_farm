@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 import time
 import os
 import sqlite3
-import threading
+import asyncio
 from device import device_data
 
 class Database:
@@ -15,37 +15,9 @@ class Database:
             os.makedirs(self.directory)
         self.conn = sqlite3.connect(self.directory+'/JMSPlant.db', check_same_thread=False)
         self.cursor = self.conn.cursor()
-        self.create_table()
-
-    def create_table(self):
-        '''
-        DB 테이블 생성
-        '''
-        query = """
-        CREATE TABLE IF NOT EXISTS smartFarm (
-            idx INTEGER PRIMARY KEY AUTOINCREMENT,
-            IsRun BOOL,
-            sysfan BOOL,
-            wpump BOOL,
-            led BOOL,
-            humidity REAL,
-            temperature REAL,
-            ground1 INTEGER,
-            ground2 INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            deleted_at TIMESTAMP DEFAULT NULL
-        );
-        """
-        try:
-            self.cursor.executescript(query)
-        except sqlite3.Error as e:
-            print(f"SQLite error: {e}")
 
     def smartFarm_insert_data(self, data) -> None:
-        '''
-        DB에 데이터 삽입
-        '''
+        '''DB에 데이터 삽입'''
         if( data.get("sysfan") != None and      data.get("wpump") != None and
             data.get("led") != None and         data.get("humidity") != None and
             data.get("temperature") != None and data.get("ground1")!= None and
@@ -131,8 +103,13 @@ class Ardu(device_data):
         self.db.smartFarm_insert_data(self.data)
         self.last_print_time = time.time()
 
-if __name__ == "__main__":
+async def main():
     Ar = Ardu()
     while True:
-        Ar.read_data()
-        Ar.update()
+        if Ar.arduino.in_waiting>0:
+            Ar.read_data()
+            Ar.update()
+        await asyncio.sleep(0.1)
+        
+if __name__ == "__main__":
+    asyncio.run(main())
