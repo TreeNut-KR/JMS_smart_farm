@@ -408,9 +408,17 @@ async def example(status_code: int):
 
 
 
+
+
+
+
+
+
+
 @app.get("/", summary="root 접속 시 docs 이동")
 def root():
     return RedirectResponse(url="/docs")
+
 
 @app.get("/api/latest", response_model=latestData, summary="최근 데이터 조회")
 async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
@@ -428,12 +436,14 @@ async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
             latest_sysfan=rows[0][1],
             latest_wpump=rows[0][2],
             latest_led=rows[0][3],
-            created_at=rows[0][8]
-        )
+            created_at=rows[0][8])
         return data
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
-    
+
+
+
+
 @app.get("/api/idx100", response_model=List[idx100Data], summary="idx 100 데이터 조회")
 async def get_recent_100_data(db_query: DB_Query = Depends(get_db_query)):
     '''
