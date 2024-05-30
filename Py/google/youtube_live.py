@@ -1,9 +1,10 @@
+import cv2
 import os
 from dotenv import load_dotenv
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-import datetime
+import google_auth_oauthlib.flow
+import googleapiclient.discovery
+import googleapiclient.errors
+
 # .env 파일에서 환경 변수 로드
 load_dotenv()
 
@@ -23,54 +24,62 @@ def get_client_secrets():
     }
     return client_secrets
 
-# OAuth 2.0을 위한 스코프 설정
-SCOPES = ['https://www.googleapis.com/auth/youtube']
+# YouTube API 인증 설정
+scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+client_secrets = get_client_secrets()
 
-# API 정보
-API_SERVICE_NAME = 'youtube'
-API_VERSION = 'v3'
+flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_config(
+    client_secrets, scopes)
+credentials = flow.run_console()
 
-def get_authenticated_service():
-    client_secrets = get_client_secrets()
-    flow = InstalledAppFlow.from_client_config(client_secrets, SCOPES)
-    credentials = flow.run_local_server()
-    return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+youtube = googleapiclient.discovery.build(
+    "youtube", "v3", credentials=credentials)
 
-def create_live_event(youtube, title, description, start_time, end_time):
-    insert_broadcast_response = youtube.liveBroadcasts().insert(
-        part="snippet,status",
-        body=dict(
-            snippet=dict(
-                title=title,
-                description=description,
-                scheduledStartTime=start_time,
-                scheduledEndTime=end_time
-            ),
-            status=dict(
-                privacyStatus="private"
-            )
-        )
-    ).execute()
+# 웹캠 캡처 설정
+cap = cv2.VideoCapture(0)
 
-    snippet = insert_broadcast_response["snippet"]
+# 라이브 방송 예약 함수
+def schedule_live_stream():
+    request = youtube.liveBroadcasts().insert(
+        part="snippet,status,contentDetails",
+        body={
+            "snippet": {
+                "title": "My Live Stream",
+                "description": "This is a live stream from my webcam.",
+                "scheduledStartTime": "2023-06-01T12:00:00Z"
+            },
+            "status": {
+                "privacyStatus": "public"
+            },
+            "contentDetails": {
+                "enableAutoStart": True,
+                "enableAutoStop": True
+            }
+        }
+    )
+    response = request.execute()
+    print("Live stream scheduled:", response["id"])
+    return response["id"]
 
-    broadcast_id = insert_broadcast_response["id"]
-    print("방송 ID: %s" % broadcast_id)
-    print("방송 제목: %s" % snippet["title"])
-    print("예정된 시작 시간: %s" % snippet["scheduledStartTime"])
-    print("예정된 종료 시간: %s" % snippet["scheduledEndTime"])
+# 라이브 방송 시작
+def start_live_stream(broadcast_id):
+    request = youtube.liveBroadcasts().transition(
+        broadcastStatus="live",
+        id=broadcast_id,
+        part="id,status"
+    )
+    response = request.execute()
+    print("Live stream started:", response["id"])
 
-    # 생성된 라이브 이벤트의 URL을 구성
-    live_event_url = f"https://www.youtube.com/watch?v={broadcast_id}"
-    print("라이브 이벤트 URL: %s" % live_event_url)
+# 메인 루프
+broadcast_id = schedule_live_stream()
+start_live_stream(broadcast_id)
 
-if __name__ == "__main__":
-    youtube = get_authenticated_service()
-    try:
-        create_live_event(youtube,
-                          "JMS Smart Farm Live",
-                          "이것은 테스트 라이브 이벤트입니다.",
-                          datetime.timedelta(),
-                          datetime.timedelta(hours=12))
-    except HttpError as e:
-        print("HTTP 에러 %d 발생:/n%s" % (e.resp.status, e.content))
+while True:
+    ret, frame = cap.read()
+    cv2.imshow("Live Stream", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()

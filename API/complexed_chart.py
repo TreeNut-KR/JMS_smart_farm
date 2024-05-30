@@ -15,6 +15,7 @@ from fastapi.openapi.utils import get_openapi
 
 from authlib.integrations.starlette_client import OAuth
 from pydantic import BaseModel, Field, field_validator
+from typing import List, Any
 from jose import jwt
 
 import uvicorn
@@ -132,9 +133,42 @@ class MonthDataRequest(BaseModel):
                 "month": 5
                 }
             ]
-        }   
+        }
     }
+    
+class latestData(BaseModel):
+    latest_temperature: float
+    latest_humidity: float
+    latest_ground1: int
+    latest_ground2: int
+    latest_sysfan: int
+    latest_wpump: int
+    latest_led: int
+    created_at: datetime
+    
+class idx100Data(BaseModel):
+    index: int
+    Date_temperature: float
+    Date_humidity: float
+    Date_ground1: int
+    Date_ground2: int
+    Created_at: datetime
+    
+class hourData(BaseModel):
+    Hour_slot: str
+    Hourly_temperature: float|None
+    Hourly_humidity: float|None
+    Hourly_ground1: int|None
+    Hourly_ground2: int|None
+    Created_at: datetime|None
 
+class daysData(BaseModel):
+    temperature: float|None
+    humidity: float|None
+    ground1: int|None
+    ground2: int|None
+    created_at: datetime|None
+    
 class DB_Query():
     def __init__(self):
         self.DATABASE='JMSPlant.db'
@@ -148,9 +182,10 @@ class DB_Query():
         self.cursor = self.conn.cursor()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb): 
+    def __exit__(self, exc_type, exc_val, exc_tb):
         '''리소스 누수를 방지용'''
         if self.conn:
+            self.conn.commit()
             self.conn.close()
         if exc_type or exc_val or exc_tb:
             logging.error(f"데이터베이스 쿼리 실행 중 오류 발생: {exc_val}")
@@ -219,11 +254,10 @@ class DB_Query():
             AND date('{}', '+6 days')
             GROUP BY date(created_at)
             ORDER BY date(created_at) ASC
-        '''
-        query = '''
             SELECT idx, temperature, humidity, ground1, ground2, created_at
             FROM smartFarm
-        ''' + datequery.format(checkdate, checkdate)
+        '''
+        query = datequery.format(checkdate, checkdate)
         return self.execute_query(query)
 
     async def fetch_monthly_data(self, checkdate: datetime):
@@ -232,13 +266,11 @@ class DB_Query():
             AND date('{}', '+30 days')
             GROUP BY date(created_at)
             ORDER BY date(created_at) ASC
-        '''
-        query = '''
             SELECT idx, temperature, humidity, ground1, ground2, created_at
             FROM smartFarm
-        ''' + datequery.format(checkdate, checkdate)
+        '''
+        query = datequery.format(checkdate, checkdate)
         return self.execute_query(query)
-        
 
 def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     '''
@@ -259,7 +291,6 @@ def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     if 0 >= start_day or days_in_month < start_day:
         return None, None
     return datetime.strptime(check_date, "%Y-%m-%d"), days_in_month
-
 
 def datetime_days(date_list: list, rows: dict) -> list:
     '''
@@ -297,73 +328,72 @@ def get_db_query():
 def root():
     return RedirectResponse(url="/docs")
 
-@app.get("/api/latest", summary="최근 데이터 조회")
+@app.get("/api/latest", response_model=latestData, summary="최근 데이터 조회")
 async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
-    '''DB의 가장 최신 날짜의 데이터를 반환합니다.'''
-
+    '''
+    DB의 가장 최신 날짜의 데이터를 반환합니다.
+    '''
     logging.info("API /api/latest 호출됨")
     rows = await db_query.fetch_latest_data()
     if rows:
-        data = [dict(Latest_temperature=row[4],
-                    Latest_humidity=row[5],
-                    Latest_ground1=row[6],
-                    Latest_ground2=row[7],
-                    Latest_sysfan=row[1],
-                    Latest_wpump=row[2],
-                    Latest_led=row[3],
-                    Created_at=row[8]) for row in rows]
-    
-        return JSONResponse(content=data[0])
+        data = latestData(
+            latest_temperature=rows[0][4],
+            latest_humidity=rows[0][5],
+            latest_ground1=rows[0][6],
+            latest_ground2=rows[0][7],
+            latest_sysfan=rows[0][1],
+            latest_wpump=rows[0][2],
+            latest_led=rows[0][3],
+            created_at=rows[0][8]
+        )
+        return data
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
     
-@app.get("/api/idx100", summary="idx 100 데이터 조회")
-async def post_date_data(db_query: DB_Query = Depends(get_db_query)):
-    '''DB의 idx필드의 최신 데이터 기준 내림차순 100개를 반환합니다.'''
-
-    logging.info("API /api/date 호출됨")
+@app.get("/api/idx100", response_model=List[idx100Data], summary="idx 100 데이터 조회")
+async def get_recent_100_data(db_query: DB_Query = Depends(get_db_query)):
+    '''
+    DB의 idx필드의 최신 데이터 기준 내림차순 100개를 반환합니다.
+    '''
+    logging.info("API /api/idx100 호출됨")
     rows = await db_query.fetch_recent_100_data()
     if rows:
-        data = [dict(index=index,
-                    Date_temperature=row[1],
-                    Date_humidity=row[2],
-                    Date_ground1=row[3],
-                    Date_ground2=row[4],
-                    Created_at=row[5]) for index, row in enumerate(rows)]
-    
-        return JSONResponse(content=data)
+        data = [idx100Data(
+                index=index,
+                Date_temperature=row[1],
+                Date_humidity=row[2],
+                Date_ground1=row[3],
+                Date_ground2=row[4],
+                Created_at=row[5]
+            ) for index, row in enumerate(rows)]
+        return data
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
     
-@app.post("/api/hourly", summary="시간 데이터 조회")
+@app.post("/api/hourly", response_model=List[hourData], summary="시간 데이터 조회")
 async def post_hourly_sensor_data(request_data: DataRequest, db_query: DB_Query = Depends(get_db_query)):
     '''
-    yyyy-mm-dd형식의 날짜를 입력받아 해당 날짜의 시간 데이터를 반환합니다.\n\n
-    Args:\n\n
-    ㅤㅤdate (str): 날짜(yyyy-mm-dd)
+    yyyy-mm-dd형식의 날짜를 입력받아 해당 날짜의 시간 데이터를 반환합니다.
     '''
     logging.info("API /api/hourly 호출됨")
     rows = await db_query.fetch_hourly_data(checkdate=request_data.date)
     if rows:
-        data = [dict(Hour_slot=row[0],
-                    Hourly_temperature=row[2],
-                    Hourly_humidity=row[3],
-                    Hourly_ground1=row[4],
-                    Hourly_ground2=row[5],
-                    Created_at=row[6]) for row in rows]
-    
-        return JSONResponse(content=data)
+        data = [hourData(
+                Hour_slot=row[0],
+                Hourly_temperature=row[2],
+                Hourly_humidity=row[3],
+                Hourly_ground1=row[4],
+                Hourly_ground2=row[5],
+                Created_at=row[6]
+            ) for row in rows]
+        return data
     else:
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
-@app.post("/api/week", summary="주간 데이터 조회")
+@app.post("/api/week", response_model=List[daysData], summary="주간 데이터 조회")
 async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(get_db_query)):
     '''
-    년도, 월, 주차 정보를 입력받아 해당 날짜의 주간 데이터를 반환합니다.\n\n
-    Args:\n\n
-    ㅤㅤyear (int): 년도(yyyy)\n\n
-    ㅤㅤmonth (int): 월(1 ~ 12)\n\n
-    ㅤㅤweek (int): 주차(1 ~ 5)
+    년도, 월, 주차 정보를 입력받아 해당 날짜의 주간 데이터를 반환합니다.
     '''
     logging.info("API /api/week 호출됨")
     start_date, _ = datetime_date(request_data.year, request_data.month, request_data.week)
@@ -382,7 +412,7 @@ async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(
         raise HTTPException(status_code=404, detail="데이터가 없습니다.")
 
     
-@app.post("/api/month", summary="월간 데이터 조회")
+@app.post("/api/month", response_model=List[daysData], summary="월간 데이터 조회")
 async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = Depends(get_db_query)):
     '''
     년도, 월 정보를 입력받아 해당 날짜의 월간 데이터를 반환합니다.\n\n
@@ -425,7 +455,7 @@ async def login_google():
 
 
 @app.get("/auth/google", summary="구글 로그인 및 계정 정보")
-async def auth_google(code: str):
+async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
     token_url = os.getenv("GOOGLE_TOKEN_URI")
     data = {
         "code": code,
@@ -458,11 +488,11 @@ async def auth_google(code: str):
     ))
     conn.commit()
     conn.close()
-    return user_info
+    return {"detail": "Success"}
 
 @app.get("/token")
 async def get_token(token: str = Depends(oauth2_scheme)):
     return jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
 
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
