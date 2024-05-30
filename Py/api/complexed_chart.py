@@ -241,14 +241,14 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 #404 오류처리
 @app.exception_handler(404)
-async def not_found_handler(request: Request, exc: Exception):
+async def not_found_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=404,
         content={"detail": "안녕하세요반갑습니다"},
     )
 #422 오류처리
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: Exception):
+async def validation_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=422,
         content={"detail": "잘못된 입력값입니다"},
@@ -263,25 +263,33 @@ async def failed_dependency_handler(request: Request, exc: HTTPException):
 
 #429 오류처리
 @app.exception_handler(429)
-async def too_many_requests_handler(request: Request, exc: Exception):
+async def too_many_requests_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=429,
         content={"detail": "요청이 너무 많습니다"},
     )
 #502 오류처리
 @app.exception_handler(502)
-async def bad_gateway_handler(request: Request, exc: Exception):
+async def bad_gateway_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=502,
         content={"detail": "게이트웨이 오류가 발생했습니다"},
     )
 # 오류처리 예제 - 각 오류처리 구문 exc: Exeption 에서 exc:HTTPExeption 수정 
-#status_code, detail 내용 수정 후 example 실행 시 결과 확인 가능
-# # 예제 엔드포인트
-# @app.get("/example")
-# async def example_endpoint():
-#     # 502 에러를 강제로 발생시키는 예제
-#     raise HTTPException(status_code=424, detail="의존성 실패 오류입니다.")
+#status_code 내용 수정 후 example 실행 시 결과 확인 가능
+# 예제 엔드포인트
+@app.get("/example")
+async def example_endpoint():
+    # 429 에러를 강제로 발생시키는 예제
+    raise HTTPException(status_code=429)
+@app.post("/example/{status_code}") 
+async def example(status_code: int):
+    if status_code in [400, 500, 404, 422, 424, 429, 502]:
+        raise HTTPException(status_code=status_code)
+    return {"message": "Invalid status code"}
+
+
+
 
 @app.get("/", summary="root 접속 시 docs 이동")
 def root():

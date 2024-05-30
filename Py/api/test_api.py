@@ -3,6 +3,7 @@ import asyncio
 from httpx import AsyncClient
 from datetime import datetime, timedelta
 import sys
+import json
 sys.path.append('.\\JMS_smart_farm\\Py\\api')
 import complexed_chart
 from complexed_chart import app
@@ -22,6 +23,16 @@ async def test_black_box():
         for endpoint in get_endpoints:
             response = await ac.get(endpoint)
             assert response.status_code == 200
+
+
+        # 테스트할 HTTP 상태 코드
+        status_codes = [400, 500, 404, 422, 424, 429, 502]
+        
+        # 각 상태 코드를 테스트하기 위한 POST 요청
+        for status_code in status_codes:
+            response = await ac.post(f"/example/{status_code}")
+            assert response.status_code == status_code
+            
 
         # POST 요청 테스트
         post_endpoints = {
