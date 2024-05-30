@@ -1,14 +1,15 @@
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
+import os
 import uvicorn
 
 app = FastAPI()
 
-# 정적 파일과 템플릿을 위한 디렉터리 설정
-app.mount("../Py/WebRTC/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates_directory = os.path.join(BASE_DIR, 'templates')
+print(templates_directory)
+templates = Jinja2Templates(directory=templates_directory)
 
 @app.get("/")
 async def get(request: Request):

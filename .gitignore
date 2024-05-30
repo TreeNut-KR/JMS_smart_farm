@@ -162,4 +162,8 @@ cython_debug/
 #.idea/
 
 # Google Account
-google_user.db
+JMSPlant.db
+
+#vscode live
+.vscode
+.vscode/

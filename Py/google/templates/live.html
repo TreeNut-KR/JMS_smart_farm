@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Stream</title>
+</head>
+<body>
+    <h1>Live Stream</h1>
+    <video id="video-player" width="640" height="480" autoplay></video>
+
+    <script>
+        const videoPlayer = document.getElementById('video-player');
+
+        // 웹소켓 연결 설정
+        const socket = new WebSocket('ws://localhost:8000/stream');
+
+        socket.onopen = () => {
+            console.log('WebSocket connection established');
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const pc = new RTCPeerConnection();
+
+            // 원격 SDP 설정
+            pc.setRemoteDescription(new RTCSessionDescription({
+                type: 'offer',
+                sdp: data.sdp
+            }));
+
+            // 로컬 SDP 생성 및 전송
+            pc.createAnswer().then((answer) => {
+                pc.setLocalDescription(answer);
+                socket.send(JSON.stringify({ sdp: answer.sdp }));
+            });
+
+            // 미디어 스트림 처리
+            pc.ontrack = (event) => {
+                videoPlayer.srcObject = event.streams[0];
+            };
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    </script>
+</body>
+</html>
