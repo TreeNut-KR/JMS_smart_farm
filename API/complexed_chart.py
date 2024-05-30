@@ -213,7 +213,7 @@ class DB_Query():
     async def fetch_recent_100_data(self):
         query = '''
             SELECT idx, temperature, humidity, ground1, ground2, created_at
-            FROM smartFarm ORDER BY idx DESC LIMIT 100
+            FROM smartFarm ORDER BY idx ASC LIMIT 100
         '''
         return self.execute_query(query)
 
@@ -280,7 +280,7 @@ def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     '''
     if (year < 1900 or year > 9999) or (month < 1 or month > 12):
         return None, None
-    first_day_of_month, days_in_month = calendar.monthrange(year, month) # 해당 월의 1주차 시작일과 
+    first_day_of_month, days_in_month = calendar.monthrange(year, month) # 해당 월의 1주차 시작일과
 
     if first_day_of_month != 0:
         first_day_of_week = 8 - first_day_of_month
@@ -392,33 +392,21 @@ async def bad_gateway_handler(request: Request, exc: HTTPException):
         status_code=502,
         content={"detail": "게이트웨이 오류가 발생했습니다"},
     )
-# 오류처리 예제 - 각 오류처리 구문 exc: Exeption 에서 exc:HTTPExeption 수정 
-#status_code 내용 수정 후 example 실행 시 결과 확인 가능
-# 예제 엔드포인트
-@app.get("/example")
-async def example_endpoint():
-    # 429 에러를 강제로 발생시키는 예제
-    raise HTTPException(status_code=429)
-@app.post("/example/{status_code}") 
-async def example(status_code: int):
-    if status_code in [400, 500, 404, 422, 424, 429, 502]:
-        raise HTTPException(status_code=status_code)
-    return {"message": "Invalid status code"}
-
-
-
-
-
-
-
-
-
-
 
 @app.get("/", summary="root 접속 시 docs 이동")
 def root():
     return RedirectResponse(url="/docs")
+    
+@app.get("/example")
+async def example_endpoint():
+    # 429 에러를 강제로 발생시키는 예제
+    raise HTTPException(status_code=429)
 
+@app.post("/example/{status_code}")
+async def example(status_code: int):
+    if status_code in [400, 500, 404, 422, 424, 429, 502]:
+        raise HTTPException(status_code=status_code)
+    return {"message": "Invalid status code"}
 
 @app.get("/api/latest", response_model=latestData, summary="최근 데이터 조회")
 async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
@@ -439,10 +427,7 @@ async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
             created_at=rows[0][8])
         return data
     else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
-
-
-
+        raise HTTPException(status_code=404)
 
 @app.get("/api/idx100", response_model=List[idx100Data], summary="idx 100 데이터 조회")
 async def get_recent_100_data(db_query: DB_Query = Depends(get_db_query)):
@@ -462,7 +447,7 @@ async def get_recent_100_data(db_query: DB_Query = Depends(get_db_query)):
             ) for index, row in enumerate(rows)]
         return data
     else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+        raise HTTPException(status_code=404)
     
 @app.post("/api/hourly", response_model=List[hourData], summary="시간 데이터 조회")
 async def post_hourly_sensor_data(request_data: DataRequest, db_query: DB_Query = Depends(get_db_query)):
@@ -482,7 +467,7 @@ async def post_hourly_sensor_data(request_data: DataRequest, db_query: DB_Query 
             ) for row in rows]
         return data
     else:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+        raise HTTPException(status_code=404)
 
 @app.post("/api/week", response_model=List[daysData], summary="주간 데이터 조회")
 async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(get_db_query)):
@@ -492,18 +477,18 @@ async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(
     logging.info("API /api/week 호출됨")
     start_date, _ = datetime_date(request_data.year, request_data.month, request_data.week)
     if not start_date:
-        raise HTTPException(status_code=400, detail="잘못된 날짜입니다.")  # 잘못된 요청에 대한 응답 코드 수정
+        raise HTTPException(status_code=400)  # 잘못된 요청에 대한 응답 코드 수정
     try:
-        date_list = [start_date + timedelta(days=i) for i in range(7)] 
+        date_list = [start_date + timedelta(days=i) for i in range(7)]
         rows = await db_query.fetch_weekly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IndexError:
-        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
+        raise HTTPException(status_code=500)
     except Exception:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+        raise HTTPException(status_code=404)
 
     
 @app.post("/api/month", response_model=List[daysData], summary="월간 데이터 조회")
@@ -518,16 +503,16 @@ async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = D
     # date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
     start_date, days_in_month = datetime_date(request_data.year, request_data.month, index=1)
     try:
-        date_list = [start_date + timedelta(days=i) for i in range(days_in_month)] 
+        date_list = [start_date + timedelta(days=i) for i in range(days_in_month)]
         rows = await db_query.fetch_monthly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except IndexError:
-        raise HTTPException(status_code=500, detail="서버 내부 오류입니다.")
+        raise HTTPException(status_code=500)
     except Exception:
-        raise HTTPException(status_code=404, detail="데이터가 없습니다.")
+        raise HTTPException(status_code=404)
 
 
 @app.get("/login", response_class=HTMLResponse, summary="구글 로그인 테스트")

@@ -60,7 +60,7 @@ def main():
     FROM dates;
 
     COMMIT;
-    """
+    """# IsRun == 0 : 테스트 데이터
 
     if conn is not None:
         execute_query(conn, query)

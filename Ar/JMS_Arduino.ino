@@ -18,8 +18,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 #define DHTTYPE DHT21
 
 DHT dht(DHTPIN, DHTTYPE);
-unsigned long previousMillis = 0;
-const long interval = 1000;
 
 void setup() {
   wdt_disable(); // 초기 설정 동안에는 Watchdog를 비활성화
@@ -50,52 +48,36 @@ void loop() {
   float Temperature = dht.readTemperature();
   int   Ground1     = analogRead(A2);
   int   Ground2     = analogRead(A3);
-  unsigned long currentMillis = millis();
 
   if(Humidity >= 30.0 || Temperature>= 35.0) {
     digitalWrite(SYS_FAN, HIGH); D_SYSFAN = true;}
   else {
     digitalWrite(SYS_FAN, LOW);  D_SYSFAN = false;}
 
-  if(Ground1 >= 380 || Ground2 >= 380) {
+  if(Ground1 >= 300 || Ground2 >= 300) {
     digitalWrite(W_PUMP, HIGH);  D_WPUMP = true;}
   else {
     digitalWrite(W_PUMP, LOW);   D_WPUMP = false;}
-  
+    
   SendDataToOLEDDisplay(Humidity, Temperature);
-  if (currentMillis - previousMillis >= interval) {
-    SendDataToRaspberryPi(IsRun, D_SYSFAN, D_WPUMP, D_LED, Humidity, Temperature, 1024 - Ground1, 1024 - Ground2);
-    previousMillis = currentMillis;
+  if (Serial.available() > 0) {
+    char receivedChar = Serial.read();
+    if (receivedChar == '1') {
+      SendDataToRaspberryPi(IsRun, D_SYSFAN, D_WPUMP, D_LED, Humidity, Temperature, 1024 - Ground1, 1024 - Ground2);
+    }
   }
 }
 
 void SendDataToRaspberryPi(bool IsRun, bool D_SYSFAN, bool D_WPUMP, bool D_LED, float humidity, float temperature, int ground1, int ground2){
-  Serial.print("IsRun : ");
-  Serial.println(IsRun);
-
-  Serial.print("SYSFAN : ");
-  Serial.println(D_SYSFAN);
-
-  Serial.print("WPUMP : ");
-  Serial.println(D_WPUMP);
-
-  Serial.print("LED : ");
-  Serial.println(D_LED);
-
-  Serial.print("Humidity : ");
-  Serial.print(humidity);
-  Serial.println(" %");
-
-  Serial.print("Temperature : ");
-  Serial.print(temperature);
-  Serial.println(" *C");
-
-  Serial.print("Ground1 : ");
-  Serial.println(ground1);
-
-  Serial.print("Ground2 : ");
-  Serial.println(ground2);
-  Serial.println();
+  // 모든 데이터를 한 줄에 출력
+  Serial.print("IsRun: "); Serial.print(IsRun);
+  Serial.print(", SYSFAN: "); Serial.print(D_SYSFAN);
+  Serial.print(", WPUMP: "); Serial.print(D_WPUMP);
+  Serial.print(", LED: "); Serial.print(D_LED);
+  Serial.print(", Humidity: "); Serial.print(humidity); Serial.print(" %");
+  Serial.print(", Temperature: "); Serial.print(temperature); Serial.print(" *C");
+  Serial.print(", Ground1: "); Serial.print(ground1);
+  Serial.print(", Ground2: "); Serial.println(ground2);  // 마지막에만 println() 사용하여 줄바꿈
 }
 
 void SendDataToOLEDDisplay(float humidity, float temperature) {
@@ -113,7 +95,7 @@ void SendDataToOLEDDisplay(float humidity, float temperature) {
   //온도 OLED에 출력
   memset(buffer, 0, sizeof(buffer));  // buffer 초기화
   dtostrf(temperature, 3, 1, temp);
-  sprintf(buffer, "Te: %s C", temp);  
+  sprintf(buffer, "Te: %s C", temp);
   display.setCursor(0,30);
   display.println(buffer);
   

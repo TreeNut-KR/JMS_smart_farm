@@ -42,19 +42,16 @@ class DatabaseManager:
         );
         """
         cursor = conn.cursor()
-        # Executes multiple SQL commands at once
         cursor.executescript(smart_farm_table_query + user_info_table_query)
-        # commit() is not needed here as it's automatically called by the context manager
 
     def insert_sample_data(self, conn):
         # smartFarm 테이블에 샘플 데이터 추가
         insert_query = """
         INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2)
-        VALUES (1, 1, 1, 1, 50.5, 22.5, 500, 500);
-        """
+        VALUES (0, 1, 1, 1, 50.5, 22.5, 500, 500);
+        """ # IsRun == 0 : 테스트 데이터
         cursor = conn.cursor()
         cursor.execute(insert_query)
-        # 여기서도 commit() 호출이 필요 없음. with 문(context manager)이 자동으로 처리함.
-
+        
 DB_setup = DatabaseManager()
 DB_setup()

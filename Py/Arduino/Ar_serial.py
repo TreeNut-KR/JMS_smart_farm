@@ -1,115 +1,130 @@
-from pydantic import BaseModel
-from fastapi.responses import FileResponse
-import serial.tools.list_ports
 from datetime import datetime, timezone, timedelta
 import time
-import os
+import pytz
+import platform
+import serial
+import serial.tools.list_ports
 import sqlite3
-import asyncio
-from device import device_data
 
 class Database:
-    def __init__(self) -> None:
-        self.directory = './' # 우분투 기준
-        if not os.path.exists(self.directory):
-            os.makedirs(self.directory)
-        self.conn = sqlite3.connect(self.directory+'/JMSPlant.db', check_same_thread=False)
-        self.cursor = self.conn.cursor()
+    def __init__(self):
+        self.DATABASE = 'JMSPlant.db'
 
-    def smartFarm_insert_data(self, data) -> None:
+    def smartFarm_insert_data(self, checkdata) -> None:
         '''DB에 데이터 삽입'''
-        if( data.get("sysfan") != None and      data.get("wpump") != None and
-            data.get("led") != None and         data.get("humidity") != None and
-            data.get("temperature") != None and data.get("ground1")!= None and
-            data.get("ground2")):
-
-            current_time = datetime.now(timezone(timedelta(hours=9)))
-            current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
+        required_keys = ["sysfan", "wpump", "led", "humidity", "temperature", "ground1", "ground2", "created_at", "updated_at",]
+        if all(checkdata.get(key) is not None for key in required_keys):
             query = """
-            INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2,created_at,updated_at,deleted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+            INSERT INTO smartFarm (IsRun, sysfan, wpump, led, humidity, temperature, ground1, ground2, created_at, updated_at, deleted_at)
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
             """
-            self.cursor.execute(query,(1,data.get("sysfan"),
-                                        data.get("wpump"),
-                                        data.get("led"),
-                                        data.get("humidity"),
-                                        data.get("temperature"),
-                                        data.get("ground1"),
-                                        data.get("ground2"),
-                                        current_time_str,
-                                        current_time_str))
-            self.conn.commit()
+            query_data = (
+                checkdata.get("sysfan"),
+                checkdata.get("wpump"),
+                checkdata.get("led"),
+                checkdata.get("humidity"),
+                checkdata.get("temperature"),
+                checkdata.get("ground1"),
+                checkdata.get("ground2"),
+                checkdata.get("created_at"),
+                checkdata.get("updated_at"))
+            
+            with sqlite3.connect(self.DATABASE) as db:
+                db.execute(query, query_data)
+                db.commit()
 
-class Ardu(device_data):
+class Ardu:
     def __init__(self) -> None:
-        super().__init__()
         self.db = Database()
-        self.port = self.ar_get("USB")
-        self.arduino = None
-        self.data = {"isrun": False,
-                     "sysfan": False,
-                     "wpump": False,
-                     "led": False,
-                     "humidity": 0.0,
-                     "temperature": 0.0,
-                     "ground1": 0,
-                     "ground2": 0}
-        self.last_print_time = time.time()
+        self.port = self.find_arduino_port()
+        self.arduino = self.connect_to_arduino()
+        self.initialize_data()
+
+    def find_arduino_port(self):
+        os_type = platform.system()
+        if os_type == "Windows":
+            mod = "CH340"  # 윈도우의 경우
+        else:
+            mod = "USB" # 리눅스 기반의 경우
+        ports = serial.tools.list_ports.comports()
+        for port_get in sorted(ports):
+            if mod in port_get.description:
+                print(f"Found Arduino on {port_get.device} ({os_type})")
+                return port_get.device
+        print("Arduino not found")
+        return None
+
+    def connect_to_arduino(self):
+        if self.port is None:
+            print("No port found for Arduino")
+            exit(1)
         try:
-            self.arduino = serial.Serial(self.port, 9600)
+            arduino = serial.Serial(self.port, 9600)
+            time.sleep(2)  # 연결 대기
+            return arduino
         except Exception as e:
             print(f"Port Error: {e}")
             exit(1)
-        time.sleep(2)
 
-    def parse_data(self, data_line):
-        data_handlers = {
-            "isrun": lambda x: bool(int(x)),
-            "d_sysfan": lambda x: bool(int(x)),
-            "d_wpump": lambda x: bool(int(x)),
-            "d_led": lambda x: bool(int(x)),
-            "humidity": lambda x: float(x.split("%")[0]), # "%"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
-            "temperature": lambda x: float(x.split("*C")[0]), # "*C"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
-            "ground1": lambda x: round((int(x) / 1024) * 100, 1),
-            "ground2": lambda x: round((int(x) / 1024) * 100, 1),
+    def initialize_data(self):
+        # 현재 시간을 서울 시간대로 설정
+        date = datetime.now(pytz.timezone('Asia/Seoul')).strftime('%Y-%m-%d %H:%M:%S')
+        self.data = {
+            "isrun": False,
+            "sysfan": False,
+            "wpump": False,
+            "led": False,
+            "humidity": 0.0,
+            "temperature": 0.0,
+            "ground1": 0,
+            "ground2": 0,
+            "created_at": date,
+            "updated_at": date
         }
 
-        key, value = data_line.split(":")
-        key = key.strip().lower() # 키를 소문자로 변환
-        value = value.strip()
-        if key in data_handlers: # 데이터 핸들링 함수가 있는 경우, 해당 함수로 값 처리
-            handled_value = data_handlers[key](value)
-            self.data[key] = handled_value
-        else:
-            pass
+    def parse_data(self, data_line, current_time):
+        # 쉼표로 데이터를 구분한 후 각 항목을 처리
+        data_items = data_line.split(", ")
+        data_handlers = {
+            "isrun": lambda x: bool(int(x)),
+            "sysfan": lambda x: bool(int(x)),
+            "wpump": lambda x: bool(int(x)),
+            "led": lambda x: bool(int(x)),
+            "humidity": lambda x: float(x.split("%")[0]), # "%"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
+            "temperature": lambda x: float(x.split("*C")[0]), # "*C"를 기준으로 분리하고 첫 번째 요소를 float으로 변환
+            "ground1": lambda x: int(x),
+            "ground2": lambda x: int(x)
+        }
 
-    def read_data(self) -> None:
-        data = None
-        if self.arduino.in_waiting > 0:
-            try:
-                data = self.arduino.readline().decode().rstrip()
-            except:
-                pass
-        if not data:
-            return
-        self.parse_data(data)
-
+        for item in data_items:
+            key, value = item.split(":")
+            key = key.strip().lower().replace(" ", "") # 키를 소문자로 변환하고 공백 제거
+            value = value.strip()
+            if key in data_handlers: # 데이터 핸들링 함수가 있는 경우, 해당 함수로 값 처리
+                handled_value = data_handlers[key](value)
+                self.data[key] = handled_value
+                self.data["created_at"] = current_time
+                self.data["updated_at"] = current_time
+                
     def update(self) -> None:
-        if time.time() - self.last_print_time < 10:
-            return
-        # 딕셔너리의 값들을 출력
         print(" ".join(f"{k}: {v}" for k, v in self.data.items()))
-        # 딕셔너리를 이용하여 데이터베이스 삽입
         self.db.smartFarm_insert_data(self.data)
-        self.last_print_time = time.time()
 
-async def main():
-    Ar = Ardu()
-    while True:
-        if Ar.arduino.in_waiting>0:
-            Ar.read_data()
-            Ar.update()
-        await asyncio.sleep(0.1)
-        
 if __name__ == "__main__":
-    asyncio.run(main())
+    ardu = Ardu()  # Ardu 인스턴스 생성
+    Time_seoul = datetime.now(pytz.timezone('Asia/Seoul'))  # 초기 값 설정, 첫 반복에서 조건을 만족시키기 위함
+    while True:
+        current_time = datetime.now(pytz.timezone('Asia/Seoul'))
+        elapsed_time = (current_time - Time_seoul).total_seconds()
+        if elapsed_time < 10:
+            time.sleep(1)  # 1초 동안 일시 중지합니다.
+            continue
+        try:
+            ardu.arduino.write(b'1')  # 아두이노로 신호를 보냄
+            data = ardu.arduino.readline().decode().rstrip()
+            ardu.parse_data(data, current_time.strftime('%Y-%m-%d %H:%M:%S'))  # 데이터 처리
+            ardu.update()
+            Time_seoul = current_time  # 마지막 출력 시간 업데이트
+        except Exception as e:
+            time.sleep(1)  # 예외 발생 시에도 1초 동안 일시 중지합니다.
+            continue
