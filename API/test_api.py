@@ -4,8 +4,8 @@ from httpx import AsyncClient
 from datetime import datetime, timedelta
 import sys
 sys.path.append('.\\JMS_smart_farm\\API')
-import complexed_chart
-from complexed_chart import app
+import complexed_chart as complexed_chart
+from complexed_chart import app, DB_Query
 
 @pytest.mark.anyio
 async def test_black_box():
@@ -61,7 +61,7 @@ class WhiteTest:
             current_date.append(str(start_date + timedelta(days=i)))
 
         date_list = [start_date + timedelta(days=i) for i in range(days)] 
-        rows =  self.complexed_chart.DB_Query().fetch_weekly_data(checkdate=start_date)
+        rows =  DB_Query.fetch_weekly_data(checkdate=start_date)
         data_items = await self.complexed_chart.datetime_days(date_list, rows)    
         
         print("")

@@ -21,5 +21,11 @@ jobs:
         pip install pytest
         
     - name: Run tests
+      env:
+        DATABASE: 'JMSPlant_test.db'
       run: |
+        python DB/python/github_actions_DB.py
         python API/test_api.py
+    
+    - name: Delete JMSPlant_test.db
+      run: rm -f JMSPlant_test.db

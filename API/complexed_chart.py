@@ -172,7 +172,7 @@ class daysData(BaseModel):
     
 class DB_Query():
     def __init__(self):
-        self.DATABASE='JMSPlant.db'
+        self.DATABASE = os.getenv('DATABASE', 'JMSPlant.db')
         self.conn = None
         self.cursor = None
         self.query = ""
@@ -361,7 +361,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def not_found_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=404,
-        content={"detail": "안녕하세요반갑습니다"},
+        content={"detail": "데이터를 불러오지 못했습니다."},
     )
 #422 오류처리
 @app.exception_handler(RequestValidationError)
@@ -574,4 +574,4 @@ async def get_token(token: str = Depends(oauth2_scheme)):
     return jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("complexed_chart:app", host="0.0.0.0", port=8000,  reload=True)

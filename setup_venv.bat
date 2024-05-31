@@ -8,14 +8,14 @@ SET PYTHON_PATH=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python312\pyth
 :: 가상 환경 디렉토리 이름 설정
 SET ENV_DIR=.venv
 
-:: pip 최신 버전으로 업그레이드
-python.exe -m pip install --upgrade pip
-
 :: Python 3.12.1 가상 환경 생성
 "%PYTHON_PATH%" -m venv %ENV_DIR%
 
 echo 가상 환경 활성화 중...
 CALL %ENV_DIR%\Scripts\activate.bat
+
+:: pip 최신 버전으로 업그레이드
+python.exe -m pip install --upgrade pip
 
 :: pip 최신 버전으로 업그레이드 (가상 환경 내부)
 pip install --upgrade pip
