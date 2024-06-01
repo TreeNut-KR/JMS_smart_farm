@@ -13,7 +13,7 @@ def get_host_ip():
 
 class UserBehavior(HttpUser):
     host = f"http://{get_host_ip()}:8000"
-    wait_time = between(60, 1200)
+    wait_time = between(600, 1200)
 
     @task
     def get_latest_data(self):

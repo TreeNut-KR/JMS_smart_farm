@@ -4,8 +4,8 @@ from httpx import AsyncClient
 from datetime import datetime, timedelta
 import sys
 sys.path.append('.\\JMS_smart_farm\\API')
-import complexed_chart
-from complexed_chart import app
+import complexed_chart as complexed_chart
+from complexed_chart import app, DB_Query
 
 @pytest.mark.anyio
 async def test_black_box():
@@ -39,10 +39,10 @@ class WhiteTest:
         self.complexed_chart = complexed_chart
 
     async def __call__(self) -> None:
-        self.test_white_week_date()
-        self.test_white_week_days()
+        self.test_white_datetime_date()
+        self.test_white_datetime_days()
     
-    def test_white_week_date(self) -> None:
+    async def test_white_datetime_date(self) -> None:
         current_date_item = None
         data_item, _ = self.complexed_chart.datetime_date(year=2024, month=3, index=5)
         data_bool = data_item == current_date_item
@@ -53,7 +53,7 @@ class WhiteTest:
         )
         assert data_item == current_date_item
 
-    async def test_white_week_days(self) -> None:
+    async def test_white_datetime_days(self) -> None:
         current_date=[]
         days = 31
         start_date = datetime.strptime("2024-06-30", "%Y-%m-%d") # 경계 날짜 테스트
@@ -61,8 +61,8 @@ class WhiteTest:
             current_date.append(str(start_date + timedelta(days=i)))
 
         date_list = [start_date + timedelta(days=i) for i in range(days)] 
-        rows =  self.complexed_chart.DB_Query().fetch_weekly_data(checkdate=start_date)
-        data_items = await self.complexed_chart.datetime_days(date_list, rows)    
+        rows =  DB_Query.fetch_weekly_data(checkdate=start_date)
+        data_items = self.complexed_chart.datetime_days(date_list, rows)    
         
         print("")
         for index, (data_item, current_date_item) in enumerate(zip(data_items, current_date)):
@@ -82,3 +82,5 @@ if __name__ == "__main__":
     white_test_instance = WhiteTest()
     asyncio.run(white_test_instance())
     pytest.main()
+    
+    
