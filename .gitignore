@@ -163,6 +163,7 @@ cython_debug/
 
 # Google Account
 *.db
-./JMSPlant.db
+
 #vscode live
-/.vscode
+.vscode
+.vscode/
