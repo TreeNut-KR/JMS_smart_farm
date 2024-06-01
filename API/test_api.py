@@ -44,7 +44,7 @@ class WhiteTest:
     
     async def test_white_datetime_date(self) -> None:
         current_date_item = None
-        data_item, _ = await self.complexed_chart.datetime_date(year=2024, month=3, index=5)
+        data_item, _ = self.complexed_chart.datetime_date(year=2024, month=3, index=5)
         data_bool = data_item == current_date_item
         print(
             f"{data_bool}\n"
@@ -62,7 +62,7 @@ class WhiteTest:
 
         date_list = [start_date + timedelta(days=i) for i in range(days)] 
         rows =  DB_Query.fetch_weekly_data(checkdate=start_date)
-        data_items = await self.complexed_chart.datetime_days(date_list, rows)    
+        data_items = self.complexed_chart.datetime_days(date_list, rows)    
         
         print("")
         for index, (data_item, current_date_item) in enumerate(zip(data_items, current_date)):

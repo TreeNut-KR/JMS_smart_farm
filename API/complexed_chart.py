@@ -16,11 +16,13 @@ from fastapi.openapi.utils import get_openapi
 
 from authlib.integrations.starlette_client import OAuth
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Any, Optional
+from typing import List, Optional
 from jose import jwt
 
 import uvicorn
 
+# 로깅 설정
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def custom_openapi():
     if app.openapi_schema:
@@ -46,10 +48,6 @@ def custom_openapi():
     }
     app.openapi_schema = openapi_schema
     return app.openapi_schema
-
-# 로깅 설정
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 app = FastAPI()
 app.openapi = custom_openapi
 app.add_middleware(# CORS 미들웨어 추가
@@ -64,7 +62,6 @@ load_dotenv()# 환경 변수 로드
 templates = Jinja2Templates(directory="API/templates")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 oauth = OAuth()# OAuth 클라이언트 설정
-
 oauth_data = {
     'name': 'google',
     'client_id': os.getenv("GOOGLE_CLIENT_ID"),
@@ -77,7 +74,6 @@ oauth_data = {
     'redirect_uri': os.getenv("GOOGLE_REDIRECT_URIS"),
     'client_kwargs': {'scope': 'openid profile email'}
 }
-
 oauth.register(**oauth_data)
 
 class DataRequest(BaseModel):
@@ -103,7 +99,6 @@ class DataRequest(BaseModel):
             ]
         }
     }
-   
 class WeekDataRequest(BaseModel):
     year: int = Field(..., title="년도", gt=1899, lt=10000,
                         description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
@@ -123,7 +118,6 @@ class WeekDataRequest(BaseModel):
             ]
         }
     }
-
 class MonthDataRequest(BaseModel):
     year: int = Field(..., title="년도", gt=1899, lt=10000,
                         description="년도를 나타내는 정수입니다. 1900에서 9999 사이의 값을 가져야 합니다.")
@@ -138,8 +132,7 @@ class MonthDataRequest(BaseModel):
                 }
             ]
         }
-    }
-    
+    }   
 class latestData(BaseModel):
     latest_temperature: float
     latest_humidity: float
@@ -148,16 +141,14 @@ class latestData(BaseModel):
     latest_sysfan: int
     latest_wpump: int
     latest_led: int
-    created_at: datetime
-    
+    created_at: datetime 
 class idx100Data(BaseModel):
     index: int
     Date_temperature: float
     Date_humidity: float
     Date_ground1: int
     Date_ground2: int
-    Created_at: datetime
-    
+    Created_at: datetime 
 class hourData(BaseModel):
     Hour_slot: str
     Hourly_temperature:  Optional[float]
@@ -165,17 +156,81 @@ class hourData(BaseModel):
     Hourly_ground1:  Optional[int]
     Hourly_ground2: Optional[int]
     Created_at: Optional[datetime]
-
 class daysData(BaseModel):
     temperature: Optional[float]
     humidity: Optional[float]
     ground1: Optional[int]
     ground2: Optional[int]
     created_at: Optional[datetime]
-
 class Google_URL(BaseModel):
     url: str
-    
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    '''400 오류처리'''
+    logging.error(f"ValueError: {exc}")
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "잘못된 값이 입력되었습니다."},
+    )
+@app.exception_handler(IndexError)
+async def index_error_handler(request: Request, exc: IndexError):
+    '''500 오류처리'''
+    logging.error(f"IndexError: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "서버 내부 오류입니다."},
+    )
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    '''따로 설정한 오류 외에 다른 오류 발생시 출력'''
+    logging.error(f"Exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "일반적인 예외가 발생했습니다."},
+    )
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc: HTTPException):
+    '''404 오류처리'''
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "데이터를 불러오지 못했습니다."},
+    )
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: HTTPException):
+    '''422 오류처리'''
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "잘못된 입력값입니다"},
+    )
+@app.exception_handler(424)
+async def failed_dependency_handler(request: Request, exc: HTTPException):
+    '''424 오류처리'''
+    return JSONResponse(
+        status_code=424,
+        content={"detail": "의존성 실패로 요청이 처리되지 않았습니다"},
+    )
+@app.exception_handler(429)
+async def too_many_requests_handler(request: Request, exc: HTTPException):
+    '''429 오류처리'''
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "요청이 너무 많습니다"},
+    )
+@app.exception_handler(502)
+async def bad_gateway_handler(request: Request, exc: HTTPException):
+    '''502 오류처리'''
+    return JSONResponse(
+        status_code=502,
+        content={"detail": "게이트웨이 오류가 발생했습니다"},
+    )
+
 class DB_Query():
     def __init__(self):
         self.DATABASE = os.getenv('DATABASE', 'JMSPlant.db')
@@ -210,15 +265,15 @@ class DB_Query():
             logging.error(f"데이터베이스 쿼리 실행 중 오류 발생: {e}")
             return []
 
-    async def fetch_latest_data(self):
+    def fetch_latest_data(self):
         query = self.query + " ORDER BY created_at DESC LIMIT 1"
         return self.execute_query(query)
 
-    async def fetch_recent_100_data(self):
+    def fetch_recent_100_data(self):
         query = self.query + " ORDER BY idx ASC LIMIT 100"
         return self.execute_query(query)
 
-    async def fetch_hourly_data(self, checkdate: datetime):
+    def fetch_hourly_data(self, checkdate: datetime):
         query = """
             WITH RECURSIVE hours AS (
                 SELECT 0 AS hour
@@ -249,29 +304,25 @@ class DB_Query():
         """.format(checkdate, checkdate)
         return self.execute_query(query)
 
-    async def fetch_weekly_data(self, checkdate: datetime):
+    def fetch_weekly_data(self, checkdate: datetime):
         query =self.query + '''
             WHERE date(created_at) BETWEEN date('{}')
             AND date('{}', '+6 days')
             GROUP BY date(created_at)
             ORDER BY date(created_at) ASC
-            SELECT idx, temperature, humidity, ground1, ground2, created_at
-            FROM smartFarm
         '''.format(checkdate, checkdate)
         return self.execute_query(query)
 
-    async def fetch_monthly_data(self, checkdate: datetime):
+    def fetch_monthly_data(self, checkdate: datetime):
         query = self.query + '''
             WHERE date(created_at) BETWEEN date('{}')
             AND date('{}', '+30 days')
             GROUP BY date(created_at)
             ORDER BY date(created_at) ASC
-            SELECT idx, temperature, humidity, ground1, ground2, created_at
-            FROM smartFarm
         '''.format(checkdate, checkdate)
         return self.execute_query(query)
     
-    async def google_uesr_data(self, checkdate: dict):
+    def google_uesr_data(self, checkdate: dict):
         query = '''
         INSERT OR REPLACE INTO user_info (id, email, verified_email, name, given_name, family_name, picture, locale)
         VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')
@@ -308,7 +359,6 @@ def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     if 0 >= start_day or days_in_month < start_day:
         return None, None
     return datetime.strptime(check_date, "%Y-%m-%d"), days_in_month
-
 def datetime_days(date_list: list, rows: dict) -> list:
     '''
     주어진 날짜 목록에 대해 특정 데이터(온도, 습도, 지면 데이터)를 반환합니다.\n
@@ -341,74 +391,8 @@ def get_db_query():
     with DB_Query() as db:
         yield db
 
-#400 오류처리
-@app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError):
-    logging.error(f"ValueError: {exc}")
-    return JSONResponse(
-        status_code=400,
-        content={"detail": "잘못된 값이 입력되었습니다."},
-    )
-#500 오류처리
-@app.exception_handler(IndexError)
-async def index_error_handler(request: Request, exc: IndexError):
-    logging.error(f"IndexError: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "서버 내부 오류입니다."},
-    )
-#따로 설정한 오류 외에 다른 오류 발생시 출력
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    logging.error(f"Exception: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "일반적인 예외가 발생했습니다."},
-    )
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
-#404 오류처리
-@app.exception_handler(404)
-async def not_found_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=404,
-        content={"detail": "데이터를 불러오지 못했습니다."},
-    )
-#422 오류처리
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=422,
-        content={"detail": "잘못된 입력값입니다"},
-    )
-#424 오류처리
-@app.exception_handler(424)
-async def failed_dependency_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=424,
-        content={"detail": "의존성 실패로 요청이 처리되지 않았습니다"},
-    )
-#429 오류처리
-@app.exception_handler(429)
-async def too_many_requests_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=429,
-        content={"detail": "요청이 너무 많습니다"},
-    )
-#502 오류처리
-@app.exception_handler(502)
-async def bad_gateway_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=502,
-        content={"detail": "게이트웨이 오류가 발생했습니다"},
-    )
-
 @app.get("/", summary="root 접속 시 docs 이동")
-def root():
+async def root():
     return RedirectResponse(url="/docs")
     
 @app.get("/example")
@@ -429,7 +413,7 @@ async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
     '''
     logging.info("API /api/latest 호출됨")
     try:
-        rows = await db_query.fetch_latest_data()
+        rows = db_query.fetch_latest_data()
         data = latestData(
             latest_temperature=rows[0][1],
             latest_humidity=rows[0][2],
@@ -454,7 +438,7 @@ async def get_recent_100_data(db_query: DB_Query = Depends(get_db_query)):
     '''
     logging.info("API /api/idx100 호출됨")
     try:
-        rows = await db_query.fetch_recent_100_data()
+        rows = db_query.fetch_recent_100_data()
         data = [idx100Data(
                 index=index,
                 Date_temperature=row[1],
@@ -478,7 +462,7 @@ async def post_hourly_sensor_data(request_data: DataRequest, db_query: DB_Query 
     '''
     logging.info("API /api/hourly 호출됨")
     try:
-        rows = await db_query.fetch_hourly_data(checkdate=request_data.date)
+        rows = db_query.fetch_hourly_data(checkdate=request_data.date)
         data = [hourData(
                 Hour_slot=row[0],
                 Hourly_temperature=row[2],
@@ -506,7 +490,7 @@ async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(
         raise HTTPException(status_code=400)  # 잘못된 요청에 대한 응답 코드 수정
     try:
         date_list = [start_date + timedelta(days=i) for i in range(7)]
-        rows = await db_query.fetch_weekly_data(checkdate=start_date)
+        rows = db_query.fetch_weekly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
     except ValueError as ve:
@@ -527,7 +511,7 @@ async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = D
     start_date, days_in_month = datetime_date(request_data.year, request_data.month, index=1)
     try:
         date_list = [start_date + timedelta(days=i) for i in range(days_in_month)]
-        rows = await db_query.fetch_monthly_data(checkdate=start_date)
+        rows = db_query.fetch_monthly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
     except ValueError as ve:
@@ -554,7 +538,7 @@ async def login_google():
 
 
 @app.get("/auth/google", summary="구글 로그인 및 계정 정보")
-def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
+async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
     token_url = oauth_data['access_token_url']
     data = {
         "code": code,
@@ -578,4 +562,5 @@ async def get_token(token: str = Depends(oauth2_scheme)):
     return jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
 
 if __name__ == "__main__":
-    uvicorn.run("complexed_chart:app", host="0.0.0.0", port=8000,  reload=True)
+    # uvicorn.run("complexed_chart:app", host="0.0.0.0", port=8000,  reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
