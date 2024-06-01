@@ -28,7 +28,7 @@ oauth.register(
     access_token_url=os.getenv("GOOGLE_TOKEN_URI"),
     access_token_params=None,
     refresh_token_url=None,
-    redirect_uri=os.getenv("GOOGLE_REDIRECT_URIS"),
+    redirect_uri=os.getenv("GOOGLE_REDIRECT_URIS").split(',')[1], # GOOGLE_REDIRECT_URIS은 token을 통해 계정정보를 처리하는 앤드포인트로 설정 
     client_kwargs={'scope': 'openid profile email'},
 )
 
@@ -53,14 +53,14 @@ def init_db():
 
 init_db()
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/login", response_class=HTMLResponse)
 async def get_login_html(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/login/google")
 async def login_google():
     redirect_uris = os.getenv('GOOGLE_REDIRECT_URIS').split(',')
-    redirect_uri = redirect_uris[0]
+    redirect_uri = redirect_uris[1] # GOOGLE_REDIRECT_URIS은 token을 통해 계정정보를 처리하는 앤드포인트로 설정 
     return {
         "url": f"{os.getenv('GOOGLE_AUTH_URI')}?response_type=code&client_id={os.getenv('GOOGLE_CLIENT_ID')}&redirect_uri={redirect_uri}&scope=openid%20profile%20email&access_type=offline"
     }
@@ -72,7 +72,7 @@ async def auth_google(code: str):
         "code": code,
         "client_id": os.getenv("GOOGLE_CLIENT_ID"),
         "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-        "redirect_uri": os.getenv("GOOGLE_REDIRECT_URIS").split(',')[0],
+        "redirect_uri": os.getenv("GOOGLE_REDIRECT_URIS").split(',')[1],
         "grant_type": "authorization_code",
     }
     response = requests.post(token_url, data=data)

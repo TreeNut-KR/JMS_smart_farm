@@ -134,6 +134,5 @@ GOOGLE_PROJECT_ID=your_project_id
 GOOGLE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
 GOOGLE_TOKEN_URI=https://oauth2.googleapis.com/token
 GOOGLE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
-GOOGLE_REDIRECT_URIS=your_redirect_uris
-GOOGLE_JAVASCRIPT_ORIGINS=your_javascript_origins
-```
+GOOGLE_REDIRECT_URIS=localhost:8000/auth/google(token을 통해 계정정보를 처리하는 앤드포인트로 설정)
+GOOGLE_JAVASCRIPT_ORIGINS=localhost:8000

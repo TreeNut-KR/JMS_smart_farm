@@ -39,12 +39,12 @@ class WhiteTest:
         self.complexed_chart = complexed_chart
 
     async def __call__(self) -> None:
-        self.test_white_week_date()
-        self.test_white_week_days()
+        self.test_white_datetime_date()
+        self.test_white_datetime_days()
     
-    def test_white_week_date(self) -> None:
+    async def test_white_datetime_date(self) -> None:
         current_date_item = None
-        data_item, _ = self.complexed_chart.datetime_date(year=2024, month=3, index=5)
+        data_item, _ = await self.complexed_chart.datetime_date(year=2024, month=3, index=5)
         data_bool = data_item == current_date_item
         print(
             f"{data_bool}\n"
@@ -53,7 +53,7 @@ class WhiteTest:
         )
         assert data_item == current_date_item
 
-    async def test_white_week_days(self) -> None:
+    async def test_white_datetime_days(self) -> None:
         current_date=[]
         days = 31
         start_date = datetime.strptime("2024-06-30", "%Y-%m-%d") # 경계 날짜 테스트
@@ -82,3 +82,5 @@ if __name__ == "__main__":
     white_test_instance = WhiteTest()
     asyncio.run(white_test_instance())
     pytest.main()
+    
+    

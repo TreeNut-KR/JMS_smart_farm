@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Login</title>
+    <title>JMPlant</title>
 </head>
 <body>
-    <h2>Google 로그인 예제</h2>
-    <button id="google-login-btn">Google 로그인</button>
+    <h2>Google Sign In</h2>
+    <button id="google-login-btn">Sign In</button>
 
     <script>
         document.getElementById('google-login-btn').addEventListener('click', function() {
@@ -40,7 +40,7 @@
         window.addEventListener('load', function() {
             var code = getUrlParameter('code');
             if (code) {
-                fetch('/auth/google?code=' + code)
+                fetch('/?code=' + code)
                     .then(response => response.json())
                     .then(data => {
                         console.log('User info:', data);
