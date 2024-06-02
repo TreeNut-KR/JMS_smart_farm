@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.openapi.utils import get_openapi
 
@@ -57,6 +58,17 @@ app.add_middleware(# CORS 미들웨어 추가
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+parent_directory = os.path.dirname(__file__)
+templates_directory = os.path.abspath(parent_directory+"/templates") # templates 경로 설정
+if not os.path.exists(templates_directory):
+    os.makedirs(templates_directory)
+templates = Jinja2Templates(directory=templates_directory)
+
+static_files_directory = os.path.abspath(templates_directory+"/static") # static 경로 설정)
+if not os.path.exists(static_files_directory):
+    os.makedirs(static_files_directory)
+app.mount("/static", StaticFiles(directory=static_files_directory), name="static")
 
 load_dotenv()# 환경 변수 로드
 templates = Jinja2Templates(directory="API/templates")
@@ -521,9 +533,10 @@ async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = D
     except Exception:
         raise HTTPException(status_code=404)
 
-@app.get("/login", response_class=HTMLResponse, summary="구글 로그인 테스트")
-async def get_login_html(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+@app.get("/login", response_class=HTMLResponse)
+def root(request: Request):
+    image_path = 'web_light_rd.png'
+    return templates.TemplateResponse("login.html", {"request": request, "image_path": image_path})
 
 @app.get("/login/google", response_model=Google_URL, summary="구글 로그인 URL")
 async def login_google():
@@ -535,7 +548,6 @@ async def login_google():
         f"&access_type=offline"
     )
     return Google_URL(url=url)
-
 
 @app.get("/auth/google", summary="구글 로그인 및 계정 정보")
 async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):

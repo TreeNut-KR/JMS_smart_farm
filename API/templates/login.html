@@ -1,18 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JMPlant</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Button Example</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    .custom-button {
+      display: inline-block;
+      width: 200px;
+      height: 50px;
+      cursor: pointer;
+      border: none; /* 버튼 테두리 없애기 */
+      background-color: #007BFF;
+      color: white;
+      text-align: center;
+      line-height: 50px;
+      font-size: 16px;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+
+    .custom-button:hover {
+      opacity: 0.8;
+    }
+
+    .custom-button:active {
+      transform: scale(0.95);
+    }
+  </style>
 </head>
 <body>
-    <h2>Google Sign In</h2>
-    <button id="google-login-btn">Sign In</button>
+    <button class="google-btn" id="google-login-btn">
+        <img src="/static/{{ image_path }}" alt="Custom Button" class="custom-button">
+    </button>
 
     <script>
         document.getElementById('google-login-btn').addEventListener('click', function() {
-            console.log("Google 로그인 버튼 클릭됨"); // 클릭 로깅 추가
-            // 서버의 /login/google 엔드포인트 호출
+            console.log("Google 로그인 버튼 클릭됨");
             fetch('/login/google')
                 .then(response => {
                     if (!response.ok) {
@@ -21,33 +55,19 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log("리디렉션 URL:", data.url); // 리디렉션 URL 로깅 추가
-                    // Google 로그인 페이지로 리디렉션
+                    console.log("리디렉션 URL:", data.url);
+                    // Google 로그인 페이지로 리디렉션하되, 새 창이 열리지 않도록 함
                     window.location.href = data.url;
                 })
                 .catch(error => console.error('Error:', error));
         });
 
-        // URL 파라미터에서 code 값 가져오기
         function getUrlParameter(name) {
-            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-            var results = regex.exec(window.location.search);
-            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            // URL 파라미터에서 code 값 가져오는 함수는 동일
         }
 
-        // 페이지 로드 시 URL 파라미터에서 code 값이 있는지 확인하고, 있다면 /auth/google 엔드포인트 호출
         window.addEventListener('load', function() {
-            var code = getUrlParameter('code');
-            if (code) {
-                fetch('/?code=' + code)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('User info:', data);
-                        // 사용자 정보 처리
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
+            // 페이지 로드 시 URL 파라미터에서 code 값이 있는지 확인하고, 있다면 /auth/google 엔드포인트 호출하는 부분은 동일
         });
     </script>
 </body>
