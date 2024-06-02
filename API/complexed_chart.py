@@ -83,7 +83,7 @@ oauth.register(**oauth_data)
 
 # 세션 비밀키 설정
 SECRET = os.getenv("SESSION_SECRET")
-manager = LoginManager(SECRET, token_url="/auth/token")
+manager = LoginManager(SECRET, token_url="/token")
 
 class User(BaseModel):
     username: str
