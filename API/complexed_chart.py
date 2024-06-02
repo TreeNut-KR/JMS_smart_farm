@@ -18,6 +18,8 @@ from authlib.integrations.starlette_client import OAuth
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from jose import jwt
+from fastapi_login import LoginManager
+from datetime import timedelta
 
 import uvicorn
 
@@ -49,6 +51,9 @@ def custom_openapi():
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 app = FastAPI()
+
+
+
 app.openapi = custom_openapi
 app.add_middleware(# CORS 미들웨어 추가
     CORSMiddleware,
@@ -75,6 +80,13 @@ oauth_data = {
     'client_kwargs': {'scope': 'openid profile email'}
 }
 oauth.register(**oauth_data)
+
+# 세션 비밀키 설정
+SECRET = os.getenv("SESSION_SECRET")
+manager = LoginManager(SECRET, token_url="/auth/token")
+
+class User(BaseModel):
+    username: str
 
 class DataRequest(BaseModel):
     date: str = Field(..., title="날짜",
@@ -555,6 +567,15 @@ async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
                                         headers={"Authorization": f"Bearer {access_token}"})
     user_info = user_info_response.json()
     db_query.google_uesr_data(user_info)
+
+    # 세션 생성
+    user = User(username=user_info['email'])
+    # 액세스 토큰에 만료 시간을 1시간으로 설정
+    access_token = manager.create_access_token(
+        data={"sub": user.username},
+        expires=timedelta(hours=1)
+    )
+
     return {"detail": "Success"}
 
 @app.get("/token")

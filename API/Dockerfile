@@ -7,6 +7,7 @@ WORKDIR /app
 # 필요한 패키지 설치
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install fastapi fastapi-login requests
 
 # 소스 코드 복사
 COPY . .
