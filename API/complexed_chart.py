@@ -532,7 +532,7 @@ async def login_google():
         f"&client_id={oauth_data['client_id']}"
         f"&redirect_uri={oauth_data['redirect_uri']}"
         f"&scope=openid%20profile%20email"
-        f"&access_type=offline"
+        f"&access_type=offline" #리프레시 토큰이란 ? 사용자의 세션이 만료되었을 때, 새로운 액세스 토큰을 발급받기 위해 사용하는 토큰,다시 로그인하지 않고도 세션을 유지할 수 있게 됨
     )
     return Google_URL(url=url)
 
@@ -547,20 +547,82 @@ async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
         "redirect_uri": oauth_data['redirect_uri'],
         "grant_type": "authorization_code",
     }
+
     response = requests.post(token_url, data=data)
+
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch token")
+    
+    tokens = response.json()
     access_token = response.json().get("access_token")
-    user_info_response = requests.get("https://www.googleapis.com/oauth2/v1/userinfo",
-                                        headers={"Authorization": f"Bearer {access_token}"})
+    refresh_token = tokens.get("refresh_token") # 리프레시 토큰
+
+    user_info_response = requests.get("https://www.googleapis.com/oauth2/v1/userinfo",headers={"Authorization": f"Bearer {access_token}"})
     user_info = user_info_response.json()
-    db_query.google_uesr_data(user_info)
+    db_query.google_uesr_data(user_info,refresh_token)
     return {"detail": "Success"}
 
-@app.get("/token")
+async def refresh_access_token(refresh_token: str):
+    ## 리프레쉬 토큰을 갱신하기 위한 함수
+    token_url = oauth_data['access_token_url']
+    data ={
+        "client_id": oauth_data['client_id'],
+        "client_secret": oauth_data['client_secret'],
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+    response = requests.post(token_url, data=data)
+    if response.status_code !=200 :
+        raise HTTPException(status_code=response.status_code,detail="리프레쉬 토큰 실패")
+    return response.json().get("access_token")
+
+
+async def get_valid_access_token(user_id: int, db_query: DB_Query) -> str:
+    #맞는 액세스 토큰값 받아오기 ,필요시 갱신
+    user_data = db_query.get_user_data(user_id)
+    access_token = user_data['access_token']
+    refresh_token = user_data['refresh_token']
+
+    if is_token_expired(access_token):
+            # 토큰 유효성 검사
+        new_access_token = await refresh_access_token(refresh_token)
+        db_query.update_access_token(user_id, new_access_token)
+        access_token = new_access_token
+    return access_token
+
+
+async def is_token_expired(token: str) -> bool:
+    #토큰 만료 여부를 검사함
+
+    try:
+        decoded_token = jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
+        exp = decoded_token.get("exp")
+        if exp:
+            return datetime.utcfromtimestamp(exp) < datetime.utcnow()
+        return True
+    except jwt.ExpiredSignatureError:
+        return True
+    except jwt.InvalidTokenError:
+        return True
+
+@app.get("/protected_api")
+# 유효한 액세스 토큰을 사용해 보호된 자원에 접근
+async def protected_api(user_id : int, db_query: DB_Query = Depends(get_db_query)):
+    access_token = get_valid_access_token(user_id,db_query)
+    user_info_response = requests.get("https://www.googleapis.com/oauth2/v1/userinfo", headers={"Authorization": f"Bearer {access_token}"})
+    user_info = user_info_response.json()
+    return user_info
+
+@app.get("/token") 
+#토큰을 복호화하여 검증함.
 async def get_token(token: str = Depends(oauth2_scheme)):
     return jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
 
 if __name__ == "__main__":
     # uvicorn.run("complexed_chart:app", host="0.0.0.0", port=8000,  reload=True)
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    #auth_google 에서 액세스 토큰 리프레시 토큰을 받아 db에 저장 ->
+    #refresh_access_token에서 새 토큰 발급 ->
+    #get_valid_access_token 으로 액세스 토큰의 유효성 검사, 만료됐으면 새로 발급
+    # protected_api는 엔드포인트에서 유효한 액세스 토큰을 사용해 보호된 api에 접근
