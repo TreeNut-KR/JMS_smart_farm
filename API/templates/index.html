@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JMPlant</title>
+</head>
+<body>
+    <div id="user-profile">
+        <!-- 사용자 프로필과 이름을 여기에 표시 -->
+    </div>
+    <button id="logout-btn" style="display:none;">Logout</button>
+
+    <script>
+        // 페이지 로드 시 사용자 정보를 불러와 표시
+        window.addEventListener('load', function() {
+            fetch('/user/info') // 사용자 정보를 불러오는 서버의 엔드포인트
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('네트워크 응답이 올바르지 않습니다.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.user) {
+                        document.getElementById('user-profile').innerHTML = `
+                            <img src="${data.user.picture}" alt="profile picture">
+                            <p>${data.user.name}</p>
+                        `;
+                        document.getElementById('logout-btn').style.display = 'block';
+                    } else {
+                        window.location.href = '/login.html'; // 로그인 페이지로 리디렉션
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        // 로그아웃 처리
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            fetch('/logout')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('네트워크 응답이 올바르지 않습니다.');
+                    }
+                    window.location.href = '/login.html'; // 로그인 페이지로 리디렉션
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>

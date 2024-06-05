@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.openapi.utils import get_openapi
+from starlette.middleware.sessions import SessionMiddleware
 
 from authlib.integrations.starlette_client import OAuth
 from pydantic import BaseModel, Field, field_validator
@@ -52,7 +53,7 @@ def custom_openapi():
     return app.openapi_schema
 app = FastAPI()
 
-
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET"))
 
 app.openapi = custom_openapi
 app.add_middleware(# CORS 미들웨어 추가
@@ -334,7 +335,7 @@ class DB_Query():
         '''.format(checkdate, checkdate)
         return self.execute_query(query)
     
-    def google_uesr_data(self, checkdate: dict):
+    def google_user_data(self, checkdate: dict):
         query = '''
         INSERT OR REPLACE INTO user_info (id, email, verified_email, name, given_name, family_name, picture, locale)
         VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')
@@ -371,6 +372,7 @@ def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     if 0 >= start_day or days_in_month < start_day:
         return None, None
     return datetime.strptime(check_date, "%Y-%m-%d"), days_in_month
+
 def datetime_days(date_list: list, rows: dict) -> list:
     '''
     주어진 날짜 목록에 대해 특정 데이터(온도, 습도, 지면 데이터)를 반환합니다.\n
@@ -397,6 +399,12 @@ def datetime_days(date_list: list, rows: dict) -> list:
                 "created_at": date.strftime("%Y-%m-%d %H:%M:%S")
             })
     return data
+
+def get_current_user(request: Request):
+    user_info = request.session.get("user")
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user_info
 
 def get_db_query():
     '''DB_Query 클래스 의존성 생성 함수'''
@@ -512,7 +520,6 @@ async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(
     except Exception:
         raise HTTPException(status_code=404)
 
-    
 @app.post("/api/month", response_model=List[daysData], summary="월간 데이터 조회")
 async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = Depends(get_db_query)):
     '''
@@ -548,9 +555,8 @@ async def login_google():
     )
     return Google_URL(url=url)
 
-
 @app.get("/auth/google", summary="구글 로그인 및 계정 정보")
-async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
+async def auth_google(code: str, request: Request, db_query: DB_Query = Depends(get_db_query)):
     token_url = oauth_data['access_token_url']
     data = {
         "code": code,
@@ -564,24 +570,27 @@ async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch token")
     access_token = response.json().get("access_token")
     user_info_response = requests.get("https://www.googleapis.com/oauth2/v1/userinfo",
-                                        headers={"Authorization": f"Bearer {access_token}"})
+                                      headers={"Authorization": f"Bearer {access_token}"})
     user_info = user_info_response.json()
-    db_query.google_uesr_data(user_info)
+    db_query.google_user_data(user_info)
 
-    # 세션 생성
-    user = User(username=user_info['email'])
-    # 액세스 토큰에 만료 시간을 1시간으로 설정
-    access_token = manager.create_access_token(
-        data={"sub": user.username},
-        expires=timedelta(hours=1)
-    )
+    # 세션에 사용자 정보 저장
+    request.session['user'] = user_info
+    return RedirectResponse(url="/protected")
 
-    return {"detail": "Success"}
+@app.get("/protected")
+async def protected_route(request: Request, user: dict = Depends(get_current_user)):
+    return {"detail": f"Hello, {user['email']}!"}
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.pop("user", None)
+    return {"detail": "Logged out"}
 
 @app.get("/token")
 async def get_token(token: str = Depends(oauth2_scheme)):
     return jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
 
 if __name__ == "__main__":
-    # uvicorn.run("complexed_chart:app", host="0.0.0.0", port=8000,  reload=True)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("complexed_chart:app", host="0.0.0.0", port=8000,  reload=True)
+    # uvicorn.run(app, host="0.0.0.0", port=8000)
