@@ -361,7 +361,6 @@ async def exception_handler(request: Request, exc: Exception):
         detail = detail(exc)
     return JSONResponse(status_code=status_code, content={"detail": detail})
 
-
 @app.get("/", summary="root 접속 시 docs 이동")
 async def root():
     return RedirectResponse(url="/docs")
