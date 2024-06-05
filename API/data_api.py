@@ -14,10 +14,11 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.openapi.utils import get_openapi
+from exceptions import EXCEPTION_HANDLERS
 
 from authlib.integrations.starlette_client import OAuth
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional
+from typing import List, Optional, Union
 from jose import jwt
 
 import uvicorn
@@ -177,72 +178,6 @@ class daysData(BaseModel):
 class Google_URL(BaseModel):
     url: str
 
-@app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError):
-    '''400 오류처리'''
-    logging.error(f"ValueError: {exc}")
-    return JSONResponse(
-        status_code=400,
-        content={"detail": "잘못된 값이 입력되었습니다."},
-    )
-@app.exception_handler(IndexError)
-async def index_error_handler(request: Request, exc: IndexError):
-    '''500 오류처리'''
-    logging.error(f"IndexError: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "서버 내부 오류입니다."},
-    )
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    '''따로 설정한 오류 외에 다른 오류 발생시 출력'''
-    logging.error(f"Exception: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "일반적인 예외가 발생했습니다."},
-    )
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
-@app.exception_handler(404)
-async def not_found_handler(request: Request, exc: HTTPException):
-    '''404 오류처리'''
-    return JSONResponse(
-        status_code=404,
-        content={"detail": "데이터를 불러오지 못했습니다."},
-    )
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: HTTPException):
-    '''422 오류처리'''
-    return JSONResponse(
-        status_code=422,
-        content={"detail": "잘못된 입력값입니다"},
-    )
-@app.exception_handler(424)
-async def failed_dependency_handler(request: Request, exc: HTTPException):
-    '''424 오류처리'''
-    return JSONResponse(
-        status_code=424,
-        content={"detail": "의존성 실패로 요청이 처리되지 않았습니다"},
-    )
-@app.exception_handler(429)
-async def too_many_requests_handler(request: Request, exc: HTTPException):
-    '''429 오류처리'''
-    return JSONResponse(
-        status_code=429,
-        content={"detail": "요청이 너무 많습니다"},
-    )
-@app.exception_handler(502)
-async def bad_gateway_handler(request: Request, exc: HTTPException):
-    '''502 오류처리'''
-    return JSONResponse(
-        status_code=502,
-        content={"detail": "게이트웨이 오류가 발생했습니다"},
-    )
-
 class DB_Query():
     def __init__(self):
         self.DATABASE = os.getenv('DATABASE', 'JMSPlant.db')
@@ -352,14 +287,14 @@ class DB_Query():
         self.conn.commit()
         self.conn.close()
 
-def datetime_date(year: int, month: int, index: int = 0) -> datetime:
+def datetime_date(year: int, month: int, index: int = 0) -> Union[tuple[datetime, int], None]:
     '''
     해당 연도와 월에 대한 특정 주의 시작일과 그 달의 총 일수를 반환합니다.\n
     입력된 연도가 1900에서 9999 사이, 월이 1에서 12 사이가 아니면 None을 반환합니다.
     '''
-    if (year < 1900 or year > 9999) or (month < 1 or month > 12):
-        return None, None
-    first_day_of_month, days_in_month = calendar.monthrange(year, month) # 해당 월의 1주차 시작일과
+    if (year < 1900 or year > 9999) or (month < 0 or month > 13):
+        return None
+    first_day_of_month, days_in_month = calendar.monthrange(year, month) # 해당 월의 1주차 시작일과 총 일수
 
     if first_day_of_month != 0:
         first_day_of_week = 8 - first_day_of_month
@@ -369,8 +304,9 @@ def datetime_date(year: int, month: int, index: int = 0) -> datetime:
     start_day = first_day_of_week + ((index-1) * 7)
     check_date = f"{year}-{month:02d}-{start_day:02d}" # YYYY-MM-DD 형식으로변경
     if 0 >= start_day or days_in_month < start_day:
-        return None, None
+        return None
     return datetime.strptime(check_date, "%Y-%m-%d"), days_in_month
+
 def datetime_days(date_list: list, rows: dict) -> list:
     '''
     주어진 날짜 목록에 대해 특정 데이터(온도, 습도, 지면 데이터)를 반환합니다.\n
@@ -402,21 +338,33 @@ def get_db_query():
     '''DB_Query 클래스 의존성 생성 함수'''
     with DB_Query() as db:
         yield db
+        
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    handler_config = EXCEPTION_HANDLERS.get(exc.status_code, EXCEPTION_HANDLERS.get(500))
+    status_code = handler_config["status_code"]
+    if callable(status_code):
+        status_code = status_code(exc)
+    detail = handler_config["detail"]
+    if callable(detail):
+        detail = detail(exc)
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
+@app.exception_handler(Exception)
+async def exception_handler(request: Request, exc: Exception):
+    handler_config = EXCEPTION_HANDLERS.get(500)
+    status_code = handler_config["status_code"]
+    if callable(status_code):
+        status_code = status_code(exc)
+    detail = handler_config["detail"]
+    if callable(detail):
+        detail = detail(exc)
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
 
 @app.get("/", summary="root 접속 시 docs 이동")
 async def root():
     return RedirectResponse(url="/docs")
-    
-@app.get("/example")
-async def example_endpoint():
-    # 429 에러를 강제로 발생시키는 예제
-    raise HTTPException(status_code=429)
-
-@app.post("/example/{status_code}")
-async def example(status_code: int):
-    if status_code in [400, 500, 404, 422, 424, 429, 502]:
-        raise HTTPException(status_code=status_code)
-    return {"message": "Invalid status code"}
 
 @app.get("/api/latest", response_model=latestData, summary="최근 데이터 조회")
 async def get_latest_data(db_query: DB_Query = Depends(get_db_query)):
@@ -497,11 +445,13 @@ async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(
     년도, 월, 주차 정보를 입력받아 해당 날짜의 주간 데이터를 반환합니다.
     '''
     logging.info("API /api/week 호출됨")
-    start_date, _ = datetime_date(request_data.year, request_data.month, request_data.week)
-    if not start_date:
+     
+    result_data = datetime_date(request_data.year, request_data.month, request_data.week)
+    if not result_data:
         raise HTTPException(status_code=400)  # 잘못된 요청에 대한 응답 코드 수정
     try:
-        date_list = [start_date + timedelta(days=i) for i in range(7)]
+        start_date, _ = result_data
+        date_list = [start_date + timedelta(days=i) for i in range(7)] # start_date로 부터 1주일치 리스트
         rows = db_query.fetch_weekly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
@@ -512,7 +462,6 @@ async def post_data(request_data: WeekDataRequest, db_query: DB_Query = Depends(
     except Exception:
         raise HTTPException(status_code=404)
 
-    
 @app.post("/api/month", response_model=List[daysData], summary="월간 데이터 조회")
 async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = Depends(get_db_query)):
     '''
@@ -520,9 +469,12 @@ async def post_month_data(request_data: MonthDataRequest, db_query: DB_Query = D
     '''
     logging.info("API /api/month 호출됨")
     # date_str = f"{request_data.year}-{request_data.month:02d}-{1:02d}"
-    start_date, days_in_month = datetime_date(request_data.year, request_data.month, index=1)
+    result_data = datetime_date(request_data.year, request_data.month, index=1)
+    if not result_data:
+        raise HTTPException(status_code=400)  # 잘못된 요청에 대한 응답 코드 수정
     try:
-        date_list = [start_date + timedelta(days=i) for i in range(days_in_month)]
+        start_date, days_in_month = result_data
+        date_list = [start_date + timedelta(days=i) for i in range(days_in_month)]  
         rows = db_query.fetch_monthly_data(checkdate=start_date)
         data = datetime_days(date_list, rows)
         return JSONResponse(content=data)
@@ -567,12 +519,12 @@ async def auth_google(code: str, db_query: DB_Query = Depends(get_db_query)):
                                         headers={"Authorization": f"Bearer {access_token}"})
     user_info = user_info_response.json()
     db_query.google_uesr_data(user_info)
-    return {"detail": "Success"}
+    return 
 
 @app.get("/token")
 async def get_token(token: str = Depends(oauth2_scheme)):
     return jwt.decode(token, os.getenv("GOOGLE_CLIENT_SECRET"), algorithms=["HS256"])
 
 if __name__ == "__main__":
-    # uvicorn.run("complexed_chart:app", host="0.0.0.0", port=8000,  reload=True)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("data_api:app", host="0.0.0.0", port=8000,  reload=True)
+    # uvicorn.run(app, host="0.0.0.0", port=8000)
